@@ -22,7 +22,7 @@ describe Api::V1::ArticlesController do
         }
 
         run_test! do |response|
-          expect(JSON.parse(response.body)['suppliers'].pluck('id')).to include supplier.id
+          expect(response.parsed_body['suppliers'].pluck('id')).to include supplier.id
         end
       end
 
@@ -72,7 +72,7 @@ describe Api::V1::ArticlesController do
         schema type: :object, properties: { article: { '$ref': '#/components/schemas/ArticleDetail' } }
 
         run_test! do |response|
-          created = Article.find(JSON.parse(response.body)['article']['id'])
+          created = Article.find(response.parsed_body['article']['id'])
           expect(created.supplier).to eq supplier
           expect(created.price).to eq 2.5
           expect(created.unit_quantity).to eq 6
@@ -86,13 +86,10 @@ describe Api::V1::ArticlesController do
         run_test!
       end
 
-      context 'without the article role' do
+      response '403', 'missing scope or no permission' do
         let(:user) { create(:user) }
-
-        response '403', 'missing scope or no permission' do
-          schema '$ref' => '#/components/schemas/Error403'
-          run_test!
-        end
+        schema '$ref' => '#/components/schemas/Error403'
+        run_test!
       end
     end
   end
@@ -123,10 +120,7 @@ describe Api::V1::ArticlesController do
       end
 
       it_handles_invalid_token_with_id
-      # in a context, so that its +let(:id)+ does not replace the one above
-      context 'with an unknown id' do
-        it_cannot_find_object 'article not found'
-      end
+      it_cannot_find_object 'article not found'
     end
 
     delete 'remove an article (marks it as deleted)' do

@@ -25,7 +25,7 @@ describe 'Orders (write)' do
         schema type: :object, properties: { order: { '$ref': '#/components/schemas/Order' } }
 
         run_test! do |response|
-          data = JSON.parse(response.body)['order']
+          data = response.parsed_body['order']
           order = Order.find(data['id'])
           expect(data['is_open']).to be true
           expect(order.created_by).to eq user
@@ -38,7 +38,7 @@ describe 'Orders (write)' do
         let(:payload) { { order: { supplier_id: supplier.id, article_ids: [article.id] } } }
 
         run_test! do |response|
-          order = Order.find(JSON.parse(response.body)['order']['id'])
+          order = Order.find(response.parsed_body['order']['id'])
           expect(order.articles).to eq [article]
         end
       end
@@ -57,13 +57,10 @@ describe 'Orders (write)' do
         run_test!
       end
 
-      context 'without the orders role' do
+      response '403', 'missing scope or no permission' do
         let(:user) { create(:user) }
-
-        response '403', 'missing scope or no permission' do
-          schema '$ref' => '#/components/schemas/Error403'
-          run_test!
-        end
+        schema '$ref' => '#/components/schemas/Error403'
+        run_test!
       end
 
       it_handles_invalid_token
@@ -89,16 +86,13 @@ describe 'Orders (write)' do
         schema type: :object, properties: { order: { '$ref': '#/components/schemas/Order' } }
 
         run_test! do |response|
-          expect(JSON.parse(response.body)['order']['note']).to eq 'changed'
+          expect(response.parsed_body['order']['note']).to eq 'changed'
           expect(existing_order.reload.updated_by).to eq user
         end
       end
 
       it_handles_invalid_token_with_id
-      # in a context, so that its +let(:id)+ does not replace the one above
-      context 'with an unknown id' do
-        it_cannot_find_object 'order not found'
-      end
+      it_cannot_find_object 'order not found'
     end
   end
 
@@ -114,7 +108,7 @@ describe 'Orders (write)' do
         schema type: :object, properties: { order: { '$ref': '#/components/schemas/Order' } }
 
         run_test! do |response|
-          data = JSON.parse(response.body)['order']
+          data = response.parsed_body['order']
           expect(data['is_open']).to be false
           expect(data['state']).to eq 'finished'
         end
@@ -143,7 +137,8 @@ describe 'Orders (write)' do
       let(:id) { existing_order.id }
       let(:document) { 'articles' }
 
-      before { existing_order.update!(ends: 1.day.from_now) }
+      # the PDF titles show the end date
+      let(:existing_order) { create(:order, article_count: 3, ends: 1.day.from_now) }
 
       response '200', 'the PDF file' do
         run_test! do |response|
@@ -152,29 +147,20 @@ describe 'Orders (write)' do
         end
       end
 
-      context 'without the orders or pickups role' do
+      response '403', 'no permission' do
         let(:user) { create(:user) }
-
-        response '403', 'no permission' do
-          run_test!
-        end
+        run_test!
       end
 
-      context 'with an order without an end date' do
+      response '422', 'the order has no end date yet' do
         before { existing_order.update!(ends: nil) }
-
-        response '422', 'the order has no end date yet' do
-          schema '$ref' => '#/components/schemas/Error422'
-          run_test!
-        end
+        schema '$ref' => '#/components/schemas/Error422'
+        run_test!
       end
 
-      context 'with an unknown document' do
+      response '404', 'order or document not found' do
         let(:document) { 'nonsense' }
-
-        response '404', 'order or document not found' do
-          run_test!
-        end
+        run_test!
       end
     end
   end

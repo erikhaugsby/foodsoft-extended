@@ -21,7 +21,7 @@ describe Api::V1::InvoicesController do
         }
 
         run_test! do |response|
-          expect(JSON.parse(response.body)['invoices'].pluck('id')).to eq [invoice.id]
+          expect(response.parsed_body['invoices'].pluck('id')).to eq [invoice.id]
         end
       end
 
@@ -44,7 +44,7 @@ describe Api::V1::InvoicesController do
         schema type: :object, properties: { invoice: { '$ref': '#/components/schemas/Invoice' } }
 
         run_test! do |response|
-          created = Invoice.find(JSON.parse(response.body)['invoice']['id'])
+          created = Invoice.find(response.parsed_body['invoice']['id'])
           expect(created.created_by).to eq user
           expect(created.amount).to eq 123.45
         end
@@ -57,14 +57,10 @@ describe Api::V1::InvoicesController do
         run_test!
       end
 
-      context 'without the finance or invoices role' do
+      response '403', 'missing scope or no permission' do
         let(:user) { create(:user) }
-        let!(:invoice) { create(:invoice, supplier: supplier) }
-
-        response '403', 'missing scope or no permission' do
-          schema '$ref' => '#/components/schemas/Error403'
-          run_test!
-        end
+        schema '$ref' => '#/components/schemas/Error403'
+        run_test!
       end
     end
   end
@@ -94,20 +90,14 @@ describe Api::V1::InvoicesController do
         end
       end
 
-      context "with someone else's invoice and only the invoices role" do
-        let!(:invoice) { create(:invoice, supplier: supplier) }
-
-        response '403', 'invoice cannot be edited by this user' do
-          schema '$ref' => '#/components/schemas/Error403'
-          run_test!
-        end
+      response '403', 'invoice cannot be edited by this user' do
+        let(:invoice) { create(:invoice, supplier: supplier) }
+        schema '$ref' => '#/components/schemas/Error403'
+        run_test!
       end
 
       it_handles_invalid_token_with_id
-      # in a context, so that its +let(:id)+ does not replace the one above
-      context 'with an unknown id' do
-        it_cannot_find_object 'invoice not found'
-      end
+      it_cannot_find_object 'invoice not found'
     end
   end
 
@@ -132,7 +122,7 @@ describe Api::V1::InvoicesController do
     it 'uploads, lists, downloads and removes a file' do
       post base, params: { attachments: [pdf] }, headers: headers
       expect(response).to have_http_status :created
-      attachments = JSON.parse(response.body)['invoice']['attachments']
+      attachments = response.parsed_body['invoice']['attachments']
       expect(attachments.length).to eq 1
       expect(attachments.first).to include('filename' => 'receipt.pdf', 'content_type' => 'application/pdf')
 
@@ -142,7 +132,7 @@ describe Api::V1::InvoicesController do
 
       delete "#{base}/#{attachments.first['id']}", headers: headers
       expect(response).to have_http_status :ok
-      expect(JSON.parse(response.body)['invoice']['attachments']).to be_empty
+      expect(response.parsed_body['invoice']['attachments']).to be_empty
     end
 
     it 'creates an invoice together with a file' do
@@ -150,7 +140,7 @@ describe Api::V1::InvoicesController do
            params: { invoice: { supplier_id: supplier.id, amount: '12.50' }, attachments: [pdf] },
            headers: headers
       expect(response).to have_http_status :created
-      expect(JSON.parse(response.body)['invoice']['attachments'].length).to eq 1
+      expect(response.parsed_body['invoice']['attachments'].length).to eq 1
     end
 
     it 'rejects other file types' do
