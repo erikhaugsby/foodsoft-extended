@@ -30,7 +30,8 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          # build only: the fork does not publish an image (the test server builds its own)
+          push: false
           # arm64 cannot work: libv8 3.16 (therubyracer) needs Python 2 and has no arm64 build
           platforms: linux/amd64
           tags: ghcr.io/${{ github.repository }}:latest
