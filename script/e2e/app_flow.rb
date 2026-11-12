@@ -11,7 +11,7 @@ BASE = ARGV.fetch(0)
 APP_ID = ARGV.fetch(1)
 SCOPES = 'config:user user:read orders:read group_orders:user offline_access orders:write articles:write invoices:write'.freeze
 PDF = "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n".freeze
-$failures = []
+@failures = []
 
 def http(method, path, token: nil, json: nil, form: nil, multipart: nil)
   uri = URI(path.start_with?('http') ? path : "#{BASE}#{path}")
@@ -35,10 +35,10 @@ rescue JSON::ParserError
   {}
 end
 
-def check(name, ok, detail = nil)
-  puts "#{ok ? 'ok  ' : 'FAIL'} #{name}#{" (#{detail})" if !ok && detail}"
-  $failures << name unless ok
-  ok
+def check(name, passed, detail = nil)
+  puts "#{passed ? 'ok  ' : 'FAIL'} #{name}#{" (#{detail})" if !passed && detail}"
+  @failures << name unless passed
+  passed
 end
 
 def expect_status(name, res, *codes)
@@ -76,13 +76,13 @@ supplier = body(http(:get, '/api/v1/suppliers', token: m))['suppliers'].first
 articles = body(http(:get, "/api/v1/articles?q[supplier_id_eq]=#{supplier['id']}", token: m))['articles']
 check('articles of the supplier', articles.size == 3, articles.size)
 res = http(:post, '/api/v1/orders', token: m,
-                                    json: { order: { supplier_id: supplier['id'], note: 'E2E', article_ids: articles.first(2).map { |a| a['id'] } } })
+                                    json: { order: { supplier_id: supplier['id'], note: 'E2E', article_ids: articles.first(2).map { |a| a.fetch('id') } } })
 expect_status('POST /orders', res, 201)
 order_id = body(res).dig('order', 'id')
-open_ids = body(http(:get, '/api/v1/orders?q[state_eq]=open', token: u))['orders'].map { |o| o['id'] }
+open_ids = body(http(:get, '/api/v1/orders?q[state_eq]=open', token: u))['orders'].map { |o| o.fetch('id') }
 check('member sees the open order', open_ids.include?(order_id))
 expect_status('PATCH /orders (choose articles)',
-              http(:patch, "/api/v1/orders/#{order_id}", token: m, json: { order: { article_ids: articles.map { |a| a['id'] } } }), 200)
+              http(:patch, "/api/v1/orders/#{order_id}", token: m, json: { order: { article_ids: articles.map { |a| a.fetch('id') } } }), 200)
 expect_status('member cannot open orders', http(:post, '/api/v1/orders', token: u, json: { order: { supplier_id: supplier['id'] } }), 403)
 
 # --- member orders
@@ -108,10 +108,10 @@ check('order is finished', body(res).dig('order', 'state') == 'finished')
 end
 
 # --- invoices with files
-res = http(:post, '/api/v1/invoices', token: m,
-                                      multipart: [['invoice[supplier_id]', supplier['id'].to_s], ['invoice[number]', 'E2E-1'],
-                                                  ['invoice[amount]', '12.5'], ['invoice[order_ids][]', order_id.to_s],
-                                                  ['attachments[]', PDF, { filename: 'receipt.pdf', content_type: 'application/pdf' }]])
+invoice_form = [['invoice[supplier_id]', supplier['id'].to_s], ['invoice[number]', 'E2E-1'],
+                ['invoice[amount]', '12.5'], ['invoice[order_ids][]', order_id.to_s],
+                ['attachments[]', PDF, { filename: 'receipt.pdf', content_type: 'application/pdf' }]]
+res = http(:post, '/api/v1/invoices', token: m, multipart: invoice_form)
 expect_status('POST /invoices with a file', res, 201)
 invoice = body(res)['invoice'] || {}
 check('invoice linked to the order', invoice['order_ids'] == [order_id], invoice['order_ids'])
@@ -119,8 +119,8 @@ file_id = invoice.dig('attachments', 0, 'id')
 res = http(:get, "/api/v1/invoices/#{invoice['id']}/attachments/#{file_id}", token: m)
 expect_status('download the file', res, 200)
 check('file content intact', res.body == PDF)
-res = http(:post, "/api/v1/invoices/#{invoice['id']}/attachments", token: m,
-                                                                     multipart: [['attachments[]', '<html>x</html>', { filename: 'fake.pdf', content_type: 'application/pdf' }]])
+fake = [['attachments[]', '<html>x</html>', { filename: 'fake.pdf', content_type: 'application/pdf' }]]
+res = http(:post, "/api/v1/invoices/#{invoice['id']}/attachments", token: m, multipart: fake)
 expect_status('a fake PDF is refused', res, 422)
 expect_status('PATCH /invoices (paid)', http(:patch, "/api/v1/invoices/#{invoice['id']}", token: m,
                                                                                          json: { invoice: { paid_on: Time.now.strftime('%F'), deposit: 1 } }), 200)
@@ -144,9 +144,9 @@ expect_status('sign out', http(:post, '/oauth/revoke', form: { token: fresh, cli
 expect_status('the revoked token is refused', http(:get, '/api/v1/config', token: fresh), 401)
 
 puts
-if $failures.empty?
+if @failures.empty?
   puts 'All end-to-end checks passed.'
 else
-  puts "#{$failures.size} end-to-end checks failed: #{$failures.join('; ')}"
+  puts "#{@failures.size} end-to-end checks failed: #{@failures.join('; ')}"
   exit 1
 end
