@@ -56,14 +56,11 @@ module ApiHelper
     end
 
     def self.it_cannot_find_object(description = 'not found')
-      # in a context, so that this id does not replace the operation's own
-      context 'with an unknown id' do
-        let(:id) { 'invalid' }
+      let(:id) { 'invalid' }
 
-        response 404, description do
-          schema '$ref' => '#/components/schemas/Error404'
-          run_test!
-        end
+      response 404, description do
+        schema '$ref' => '#/components/schemas/Error404'
+        run_test!
       end
     end
 

@@ -97,7 +97,10 @@ describe Api::V1::InvoicesController do
       end
 
       it_handles_invalid_token_with_id
-      it_cannot_find_object 'invoice not found'
+      # in a context, so that its +let(:id)+ does not replace the operation's own
+      context 'with an unknown id' do
+        it_cannot_find_object 'invoice not found'
+      end
     end
   end
 

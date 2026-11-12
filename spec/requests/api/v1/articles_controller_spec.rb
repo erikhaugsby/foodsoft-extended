@@ -120,7 +120,10 @@ describe Api::V1::ArticlesController do
       end
 
       it_handles_invalid_token_with_id
-      it_cannot_find_object 'article not found'
+      # in a context, so that its +let(:id)+ does not replace the operation's own
+      context 'with an unknown id' do
+        it_cannot_find_object 'article not found'
+      end
     end
 
     delete 'remove an article (marks it as deleted)' do

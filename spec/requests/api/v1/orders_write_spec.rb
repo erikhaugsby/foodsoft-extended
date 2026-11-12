@@ -92,7 +92,10 @@ describe 'Orders (write)' do
       end
 
       it_handles_invalid_token_with_id
-      it_cannot_find_object 'order not found'
+      # in a context, so that its +let(:id)+ does not replace the operation's own
+      context 'with an unknown id' do
+        it_cannot_find_object 'order not found'
+      end
     end
   end
 
@@ -153,7 +156,7 @@ describe 'Orders (write)' do
       end
 
       response '422', 'the order has no end date yet' do
-        before { existing_order.update!(ends: nil) }
+        let(:existing_order) { create(:order, article_count: 3, ends: nil) }
         schema '$ref' => '#/components/schemas/Error422'
         run_test!
       end

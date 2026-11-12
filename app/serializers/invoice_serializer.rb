@@ -21,7 +21,8 @@ class InvoiceSerializer < ActiveModel::Serializer
 
   # as on the website: the finance role, or the creator of an unpaid invoice with the invoices role
   def can_edit
-    scope.present? && object.user_can_edit?(scope)
+    # user_can_edit? may return a group instead of true
+    scope.present? && object.user_can_edit?(scope).present?
   end
 
   def order_ids
