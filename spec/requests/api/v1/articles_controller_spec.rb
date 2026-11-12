@@ -43,9 +43,10 @@ describe Api::V1::ArticlesController do
         }
 
         run_test! do |response|
-          data = JSON.parse(response.body)['articles']
-          expect(data.pluck('id')).to eq [article.id]
-          expect(data.first['price']).to eq article.price.to_f
+          data = response.parsed_body['articles']
+          # other specs may leave articles in the shared test database
+          found = data.find { |a| a['id'] == article.id }
+          expect(found['price']).to eq article.price.to_f
         end
       end
 
