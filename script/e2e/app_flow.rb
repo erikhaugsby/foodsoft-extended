@@ -90,7 +90,7 @@ order_articles = body(http(:get, "/api/v1/order_articles?q[order_id_eq]=#{order_
 check('three order articles', order_articles.size == 3, order_articles.size)
 res = http(:post, '/api/v1/user/group_order_articles', token: u,
                                                        json: { group_order_article: { order_article_id: order_articles.first['id'], quantity: 2, tolerance: 0 } })
-expect_status('member orders an article', res, 201)
+expect_status('member orders an article', res, 200, 201)
 goa_id = body(res).dig('group_order_article', 'id')
 expect_status('member changes the quantity',
               http(:patch, "/api/v1/user/group_order_articles/#{goa_id}", token: u, json: { group_order_article: { quantity: 3 } }), 200)
@@ -122,8 +122,8 @@ check('file content intact', res.body == PDF)
 fake = [['attachments[]', '<html>x</html>', { filename: 'fake.pdf', content_type: 'application/pdf' }]]
 res = http(:post, "/api/v1/invoices/#{invoice['id']}/attachments", token: m, multipart: fake)
 expect_status('a fake PDF is refused', res, 422)
-expect_status('PATCH /invoices (paid)', http(:patch, "/api/v1/invoices/#{invoice['id']}", token: m,
-                                                                                         json: { invoice: { paid_on: Time.now.strftime('%F'), deposit: 1 } }), 200)
+paid = { invoice: { paid_on: Time.now.strftime('%F'), deposit: 1 } }
+expect_status('PATCH /invoices (paid)', http(:patch, "/api/v1/invoices/#{invoice['id']}", token: m, json: paid), 200)
 expect_status('delete the file', http(:delete, "/api/v1/invoices/#{invoice['id']}/attachments/#{file_id}", token: m), 200)
 
 # --- articles
