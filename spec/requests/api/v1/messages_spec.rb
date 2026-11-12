@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 # Plain request specs (not rswag), see doc/API.md for the endpoint description.
-describe 'Messages API', type: :request do
+describe 'Messages API' do
   include ActiveJob::TestHelper
 
   let(:user) { create(:user) }
@@ -10,7 +10,7 @@ describe 'Messages API', type: :request do
   let(:api_scopes) { ['messages:read', 'messages:write'] }
   let(:token) { create(:oauth2_access_token, resource_owner_id: user.id, scopes: api_scopes.join(' ')).token }
   let(:headers) { { 'Authorization' => "Bearer #{token}", 'Accept' => 'application/json' } }
-  let(:json) { JSON.parse(response.body) }
+  let(:json) { response.parsed_body }
 
   def create_message(sender:, recipients:, subject: 'Hello', body: 'Some text', private: false, reply_to: nil)
     message = Message.new(sender: sender, subject: subject, body: body, private: private, reply_to: reply_to)
@@ -21,14 +21,17 @@ describe 'Messages API', type: :request do
 
   describe 'GET /messages' do
     let!(:public_message) { create_message(sender: other_user, recipients: [third_user]) }
-    let!(:private_message) { create_message(sender: other_user, recipients: [third_user], private: true) }
     let!(:my_private_message) { create_message(sender: other_user, recipients: [user], private: true) }
-    let!(:deleted_message) { create_message(sender: other_user, recipients: [user]).tap(&:soft_delete!) }
+
+    before do
+      create_message(sender: other_user, recipients: [third_user], private: true)
+      create_message(sender: other_user, recipients: [user]).tap(&:soft_delete!)
+    end
 
     it 'lists readable messages, without deleted ones' do
       get '/f/api/v1/messages', headers: headers
       expect(response).to have_http_status(:ok)
-      ids = json['messages'].map { |m| m['id'] }
+      ids = json['messages'].pluck('id')
       expect(ids).to contain_exactly(public_message.id, my_private_message.id)
       expect(json['meta']['total_count']).to eq 2
     end
@@ -56,7 +59,7 @@ describe 'Messages API', type: :request do
       get "/f/api/v1/messages/#{root.id}", headers: headers
       expect(response).to have_http_status(:ok)
       expect(json['message']['body']).to eq 'Some text'
-      expect(json['message']['recipients'].map { |r| r['id'] }).to eq [user.id]
+      expect(json['message']['recipients'].pluck('id')).to eq [user.id]
       expect(json['message']['can_edit']).to be false
     end
 
@@ -68,7 +71,7 @@ describe 'Messages API', type: :request do
     it 'shows the thread with a placeholder for deleted messages' do
       get "/f/api/v1/messages/#{reply.id}/thread", headers: headers
       expect(response).to have_http_status(:ok)
-      expect(json['messages'].map { |m| m['id'] }).to eq [root.id, reply.id, deleted_reply.id]
+      expect(json['messages'].pluck('id')).to eq [root.id, reply.id, deleted_reply.id]
       deleted = json['messages'].last
       expect(deleted['deleted']).to be true
       expect(deleted['body']).to be_nil
@@ -95,7 +98,7 @@ describe 'Messages API', type: :request do
       expect(response).to have_http_status(:created)
       expect(json['message']['reply_to']).to eq root.id
       expect(json['message']['subject']).to include('Question')
-      expect(json['message']['recipients'].map { |r| r['id'] }).to eq [other_user.id]
+      expect(json['message']['recipients'].pluck('id')).to eq [other_user.id]
     end
 
     it 'refuses a message without recipients' do
@@ -122,8 +125,8 @@ describe 'Messages API', type: :request do
     let!(:message) { create_message(sender: user, recipients: [other_user], subject: 'Old') }
 
     it 'lets the sender change subject and text' do
-      patch "/f/api/v1/messages/#{message.id}", headers: headers, as: :json,
-                                                 params: { message: { subject: 'New', body: 'Changed' } }
+      params = { message: { subject: 'New', body: 'Changed' } }
+      patch "/f/api/v1/messages/#{message.id}", headers: headers, as: :json, params: params
       expect(response).to have_http_status(:ok)
       message.reload
       expect(message.subject).to eq 'New'
@@ -133,8 +136,8 @@ describe 'Messages API', type: :request do
 
     it 'refuses others' do
       other_message = create_message(sender: other_user, recipients: [user])
-      patch "/f/api/v1/messages/#{other_message.id}", headers: headers, as: :json,
-                                                       params: { message: { body: 'Changed' } }
+      params = { message: { body: 'Changed' } }
+      patch "/f/api/v1/messages/#{other_message.id}", headers: headers, as: :json, params: params
       expect(response).to have_http_status(:forbidden)
     end
   end
@@ -156,7 +159,7 @@ describe 'Messages API', type: :request do
       expect(response).to have_http_status(:forbidden)
     end
 
-    context 'as admin' do
+    context 'when the user is an admin' do
       let(:user) { create(:admin) }
 
       it 'deletes messages of others' do
@@ -172,7 +175,7 @@ describe 'Messages API', type: :request do
       found = create(:user, first_name: 'Zebedäus')
       get '/f/api/v1/messages/recipients', headers: headers, params: { q: 'Zebed' }
       expect(response).to have_http_status(:ok)
-      expect(json['users'].map { |u| u['id'] }).to eq [found.id]
+      expect(json['users'].pluck('id')).to eq [found.id]
     end
   end
 end
