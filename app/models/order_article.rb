@@ -167,7 +167,7 @@ class OrderArticle < ApplicationRecord
         article_price.attributes = price_attributes
         if article_price.changed?
           # Updates also price attributes of article if update_global_price is selected
-          article.update_attributes!(price_attributes) if update_global_price
+          article.update!(price_attributes) if update_global_price
 
           self.article_price = article.article_prices.find_or_create_by(price_attributes)
           save
