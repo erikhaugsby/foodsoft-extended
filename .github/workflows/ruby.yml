@@ -44,6 +44,8 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
+      - name: Fill in the foodcoop route constraint (done by docker-entrypoint.sh in production)
+        run: sed -i 's/__FOODCOOPS__/f/g' config/routes.rb plugins/*/config/routes.rb
       - name: Initialize stock configuration
         run: bundle exec rake foodsoft:setup:stock_config
       - name: Load database schema
