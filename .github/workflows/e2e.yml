@@ -1,0 +1,62 @@
+name: End-to-end API
+
+# Starts Foodsoft (production mode) with a database and runs the app's API calls
+# over real HTTP: sign-in, ordering, management, PDFs, invoices with files, sign-out.
+on: [push, pull_request]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-22.04
+    services:
+      mariadb:
+        image: mariadb
+        env:
+          MYSQL_USER: user
+          MYSQL_PASSWORD: password
+          MYSQL_DATABASE: foodsoft_e2e
+          MYSQL_ROOT_PASSWORD: password
+        options: >-
+          --health-cmd "mariadb-admin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3306:3306
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+    env:
+      RAILS_ENV: production
+      DATABASE_URL: mysql2://user:password@127.0.0.1/foodsoft_e2e
+      REDIS_URL: redis://127.0.0.1:6379
+      RAILS_FORCE_SSL: 'false'
+      RAILS_LOG_TO_STDOUT: 'true'
+      BUNDLE_WITHOUT: ''
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libmagic-dev
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Prepare Foodsoft
+        run: |
+          sed -i 's/__FOODCOOPS__/f/g' config/routes.rb plugins/*/config/routes.rb
+          bundle exec rake foodsoft:setup:stock_config
+          echo "SECRET_KEY_BASE=$(openssl rand -hex 64)" >> "$GITHUB_ENV"
+      - name: Database and test data
+        run: |
+          bundle exec rake db:schema:load
+          bundle exec rails runner script/e2e/setup.rb
+        env:
+          DISABLE_DATABASE_ENVIRONMENT_CHECK: '1'
+      - name: Start Foodsoft
+        run: |
+          bundle exec rails server -p 3000 -b 127.0.0.1 > tmp/server.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:3000/f/login && break; sleep 2; done
+          curl -sf -o /dev/null http://127.0.0.1:3000/f/login
+      - name: Run the app's API calls
+        run: ruby script/e2e/app_flow.rb http://127.0.0.1:3000/f "$(cat tmp/e2e_app_id)"
+      - name: Server log (on failure)
+        if: failure()
+        run: tail -n 200 tmp/server.log
