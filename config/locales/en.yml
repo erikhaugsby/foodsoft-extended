@@ -1388,6 +1388,8 @@ en:
 
 
         Greetings, your Foodsoft Team!
+    test_email:
+      subject: "[Foodsoft] Test Email"
     upcoming_tasks:
       nextweek: 'Tasks for the next week:'
       subject: Tasks are due!

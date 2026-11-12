@@ -84,7 +84,7 @@ class Mailer < ActionMailer::Base
     subject = I18n.t('mailer.order_result_supplier.subject', name: order.supplier.name)
     subject += " (#{I18n.t('activerecord.attributes.order.pickup')}: #{format_date(order.pickup)})" if order.pickup
 
-    res = mail to: order.supplier.email,
+    mail to: order.supplier.email,
          cc: user,
          reply_to: user,
          subject: subject
@@ -104,7 +104,7 @@ class Mailer < ActionMailer::Base
     @user = bankgateway.unattended_user
 
     mail to: @user,
-      subject: I18n.t('mailer.failure_in_unattended_bank_import.subject', bankgateway: bankgateway.name)
+         subject: I18n.t('mailer.failure_in_unattended_bank_import.subject', bankgateway: bankgateway.name)
   end
 
   def not_enough_users_assigned(task, user)
@@ -147,7 +147,7 @@ class Mailer < ActionMailer::Base
   def test_email(user, target_email)
     @user = user
     mail to: target_email,
-         subject: "[Foodsoft] Test Email",
+         subject: I18n.t('mailer.test_email.subject'),
          from: FoodsoftConfig[:email_sender]
   end
 
@@ -168,7 +168,7 @@ class Mailer < ActionMailer::Base
     message.deliver_now!
   rescue StandardError => e
     # Extract recipient info safely, in case message is nil or has issues
-    recipient = message && message.to && message.to.any? ? message.to[0] : 'unknown'
+    recipient = message&.to&.any? ? message.to[0] : 'unknown'
     MailDeliveryStatus.create email: recipient, message: e.message
     # Log the error for debugging
     Rails.logger.error("Email delivery failed: #{e.class} - #{e.message}")

@@ -208,7 +208,7 @@ class FinanceReport < RenderPdf
   end
 
   def body_groups_overview
-    new_page "Kontotransaktionen der Bestellgruppen"
+    new_page 'Kontotransaktionen der Bestellgruppen'
 
     FinancialTransactionClass.order(:name).each do |row|
       body_groups_overview2(row.id, row.name)
@@ -318,17 +318,17 @@ class FinanceReport < RenderPdf
       @found = Set.new
     end
 
-    def header(h)
-      @header = h
+    def header(text)
+      @header = text
     end
 
     def row(*args)
       @data << args
 
-      unless @sum_cols
-        ftc = args.last
-        ftc.each_key { |key| @found << key }
-      end
+      return if @sum_cols
+
+      ftc = args.last
+      ftc.each_key { |key| @found << key }
     end
 
     def data

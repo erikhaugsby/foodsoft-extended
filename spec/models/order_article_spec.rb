@@ -129,24 +129,24 @@ describe OrderArticle do
   end
 
   describe 'article price' do
-    let(:admin) { create :user, groups: [create(:workgroup, role_finance: true)] }
-    let(:article) { create :article }
-    let(:order1) { create :order, article_ids: [article.id] }
-    let(:order2) { create :order, article_ids: [article.id] }
-    let(:order3) { create :order, article_ids: [article.id] }
-    let(:order4) { create :order, article_ids: [article.id] }
+    let(:admin) { create(:user, groups: [create(:workgroup, role_finance: true)]) }
+    let(:article) { create(:article) }
+    let(:order1) { create(:order, article_ids: [article.id]) }
+    let(:order2) { create(:order, article_ids: [article.id]) }
+    let(:order3) { create(:order, article_ids: [article.id]) }
+    let(:order4) { create(:order, article_ids: [article.id]) }
     let(:oa1) { order1.order_articles.first }
     let(:oa2) { order2.order_articles.first }
     let(:oa3) { order3.order_articles.first }
     let(:oa4) { order4.order_articles.first }
-    let(:go1) { create :group_order, order: order1 }
-    let(:go2) { create :group_order, order: order2 }
-    let(:go3) { create :group_order, order: order3 }
-    let(:go4) { create :group_order, order: order4 }
-    let(:goa1) { create :group_order_article, group_order: go1, order_article: oa1 }
-    let(:goa2) { create :group_order_article, group_order: go2, order_article: oa2 }
-    let(:goa3) { create :group_order_article, group_order: go3, order_article: oa3 }
-    let(:goa4) { create :group_order_article, group_order: go4, order_article: oa4 }
+    let(:go1) { create(:group_order, order: order1) }
+    let(:go2) { create(:group_order, order: order2) }
+    let(:go3) { create(:group_order, order: order3) }
+    let(:go4) { create(:group_order, order: order4) }
+    let(:goa1) { create(:group_order_article, group_order: go1, order_article: oa1) }
+    let(:goa2) { create(:group_order_article, group_order: go2, order_article: oa2) }
+    let(:goa3) { create(:group_order_article, group_order: go3, order_article: oa3) }
+    let(:goa4) { create(:group_order_article, group_order: go4, order_article: oa4) }
 
     def price_attributes(price)
       { price: price, unit_quantity: 1 }
@@ -367,14 +367,14 @@ describe OrderArticle do
   end
 
   describe 'self_service' do
-    let(:article) { create :article, unit_quantity: 3 }
-    let(:order) { create :order, article_ids: [article.id] }
-    let(:go1) { create :group_order, order: order }
-    let(:go2) { create :group_order, order: order }
-    let(:go3) { create :group_order, order: order }
-    let(:goa1) { create :group_order_article, group_order: go1, order_article: oa, quantity: 4, result: 3 }
-    let(:goa2) { create :group_order_article, group_order: go2, order_article: oa, quantity: 4, result: 6 }
-    let(:goa3) { create :group_order_article, group_order: go3, order_article: oa, quantity: 4, result: 4 }
+    let(:article) { create(:article, unit_quantity: 3) }
+    let(:order) { create(:order, article_ids: [article.id]) }
+    let(:go1) { create(:group_order, order: order) }
+    let(:go2) { create(:group_order, order: order) }
+    let(:go3) { create(:group_order, order: order) }
+    let(:goa1) { create(:group_order_article, group_order: go1, order_article: oa, quantity: 4, result: 3) }
+    let(:goa2) { create(:group_order_article, group_order: go2, order_article: oa, quantity: 4, result: 6) }
+    let(:goa3) { create(:group_order_article, group_order: go3, order_article: oa, quantity: 4, result: 4) }
 
     it 'can retrieve articles that haven\'t been fetched as ordered' do
       [goa1, goa2, goa3].map(&:reload)

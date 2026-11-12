@@ -1386,6 +1386,8 @@ de:
 
 
         Grüße sendet die Foodsoft! :)
+    test_email:
+      subject: "[Foodsoft] Test-E-Mail"
     upcoming_tasks:
       nextweek: 'Aufgaben für die nächtste Woche:'
       subject: Aufgaben werden fällig!

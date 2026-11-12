@@ -6,7 +6,7 @@ class Message < ApplicationRecord
   belongs_to :reply_to_message, optional: true, class_name: 'Message', foreign_key: 'reply_to'
   has_many :message_recipients, dependent: :destroy
   has_many :recipients, through: :message_recipients, source: :user
-  has_one :last_reply, -> { order(created_at: :desc) }, class_name: "Message", foreign_key: :reply_to
+  has_one :last_reply, -> { order(created_at: :desc) }, class_name: 'Message', foreign_key: :reply_to
 
   attr_accessor :send_method, :recipient_tokens, :order_id, :mrecipients_ids
 
@@ -14,13 +14,13 @@ class Message < ApplicationRecord
   scope :thread, ->(id) { where('id = ? OR reply_to = ?', id, id) }
   scope :readable_for, lambda { |user|
     return none unless user
-    
+
     left_joins(:message_recipients)
       .where('messages.private = FALSE OR messages.sender_id = :user_id OR message_recipients.user_id = :user_id',
              user_id: user.id)
       .distinct
   }
-  scope :last_readable_for, ->(user, nr) {
+  scope :last_readable_for, lambda { |user, nr|
     user_id = user.try(&:id)
     received = MessageRecipient.select(:message_id, :user_id).where(user_id: user_id).limit(nr)
 
@@ -43,25 +43,21 @@ class Message < ApplicationRecord
 
   # Override the `attributes=` method to exclude `mrecipients_ids`
   def attributes=(new_attributes)
-    if new_attributes.respond_to?(:with_indifferent_access)
-      new_attributes = new_attributes.with_indifferent_access
-    end
+    new_attributes = new_attributes.with_indifferent_access if new_attributes.respond_to?(:with_indifferent_access)
 
     # Log the attributes for debugging purposes
-    Rails.logger.debug "Original attributes: #{new_attributes.inspect}"
+    Rails.logger.debug { "Original attributes: #{new_attributes.inspect}" }
 
     # Remove `mrecipients_ids` from the attributes hash
     new_attributes = new_attributes.except(:mrecipients_ids, 'mrecipients_ids')
 
     # Log the sanitized attributes for debugging purposes
-    Rails.logger.debug "Sanitized attributes: #{new_attributes.inspect}"
+    Rails.logger.debug { "Sanitized attributes: #{new_attributes.inspect}" }
 
     super(new_attributes)
   end
 
-  def mrecipients_ids=(value)
-    @mrecipients_ids = value
-  end
+  attr_writer :mrecipients_ids
 
   def add_recipients(users)
     @mrecipients_ids += users
@@ -164,5 +160,4 @@ class Message < ApplicationRecord
   def create_salt
     self.salt = [Array.new(6) { rand(256).chr }.join].pack('m').chomp
   end
-
 end

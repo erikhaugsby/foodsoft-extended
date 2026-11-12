@@ -16,7 +16,7 @@ class DeliverMessageJob < ApplicationJob
             MessagesMailer.foodsoft_message(recipient, message)
           end
           message_recipient.update_attribute :email_state, :sent
-        rescue => e
+        rescue StandardError => e
           # Log the error but don't let one failed email stop the whole job
           Rails.logger.error("Failed to deliver message #{message.id} to recipient #{recipient.id} (#{recipient.email}): #{e.class} - #{e.message}")
           # Mark as failed but continue with other recipients

@@ -13,7 +13,6 @@ module FoodsoftActiveJobArguments
         FoodsoftConfig.select_multifoodcoop arguments[0]
         orig_deserialize(arguments)
       end
-
     end
   end
 end
@@ -33,7 +32,6 @@ module ActiveJob
     end
   end
 end
-
 
 ActiveSupport.on_load(:after_initialize) do
   ActiveJob::Arguments.include FoodsoftActiveJobArguments

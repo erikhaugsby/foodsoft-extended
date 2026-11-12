@@ -18,31 +18,28 @@ module FoodsoftPyapp
 
       # also add admin menu
       return if primary[:admin].nil?
+
       sub_nav = primary[:admin].sub_navigation
       sub_nav.items <<
         SimpleNavigation::Item.new(primary, :links, I18n.t('navigation.admin.tasks'), "/#{FoodsoftConfig.scope}/app/admin/planned-tasks/")
       # move to right before config item
       return unless i = sub_nav.items.index(sub_nav[:config])
 
-      sub_nav.items.insert(i, sub_nav.items.delete_at(-1)) 
+      sub_nav.items.insert(i, sub_nav.items.delete_at(-1))
     end
 
     def default_foodsoft_config(cfg)
       cfg[:use_pyapp] = false
     end
 
-    def visble_planned_tasks(ctx)
-      ret = PlannedTaskType.all
+    def visble_planned_tasks(_ctx)
+      PlannedTaskType.all
 
       # current_user = ctx.current_user
       # unless current_user.role_admin?
       #   workgroups = current_user.workgroups.map(&:id)
       #   ret = ret.where(workgroup: [nil] + workgroups)
       # end
-
-      ret
     end
-
   end
 end
-

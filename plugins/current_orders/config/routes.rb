@@ -1,5 +1,5 @@
 Rails.application.routes.draw do
-  scope '/:foodcoop', constraints: {foodcoop: /__FOODCOOPS__/} do
+  scope '/:foodcoop', constraints: { foodcoop: /__FOODCOOPS__/ } do
     namespace :current_orders do
       resources :ordergroups, only: %i[index show] do
         collection do
