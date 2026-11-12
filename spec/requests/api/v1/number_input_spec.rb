@@ -18,13 +18,13 @@ describe 'API number input' do
     context "with Accept-Language #{language}" do
       let(:headers) { { 'Authorization' => "Bearer #{token}", 'Accept-Language' => language } }
 
-      def set_price(value)
+      def change_price(value)
         patch "/f/api/v1/articles/#{article.id}", headers: headers, as: :json, params: { article: { price: value } }
       end
 
       { 130.5 => 130.5, '130.5' => 130.5, ' 12 ' => 12, '1.300' => 1.3, '7' => 7 }.each do |input, stored|
         it "stores #{input.inspect} as #{stored}" do
-          set_price(input)
+          change_price(input)
           expect(response).to have_http_status(:ok)
           expect(article.reload.price).to eq stored
         end
@@ -33,7 +33,7 @@ describe 'API number input' do
       ['130,5', '1.300,50', '1,300.50', '1,300', '1e3', '12 EUR', '0x1A'].each do |input|
         it "refuses #{input.inspect} and keeps the price" do
           old_price = article.price
-          set_price(input)
+          change_price(input)
           expect(response).to have_http_status(:unprocessable_entity)
           expect(json['error_description']).to include('dot as decimal separator')
           expect(article.reload.price).to eq old_price
