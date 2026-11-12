@@ -6,11 +6,11 @@ module FoodsoftPrinter
       base.class_eval do
         has_many :printer_jobs, dependent: :destroy
 
-        def printer_finish!(user)
-          unless finished?
-            printer_jobs.unfinished.each do |job|
-              job.add_update! 'ready'
-            end
+        def printer_finish!(_user)
+          return if finished?
+
+          printer_jobs.unfinished.each do |job|
+            job.add_update! 'ready'
           end
         end
       end

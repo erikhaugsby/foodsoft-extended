@@ -1,5 +1,5 @@
-require "foodsoft_pyapp/version"
-require "foodsoft_pyapp/engine"
+require 'foodsoft_pyapp/version'
+require 'foodsoft_pyapp/engine'
 
 module FoodsoftPyapp
   def self.enabled?

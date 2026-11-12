@@ -45,8 +45,8 @@ class MessagesController < ApplicationController
         end
       end
     end
-    rescue ActiveRecord::RecordInvalid, ActiveRecord::Rollback => e
-      render :new, status: :unprocessable_entity
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::Rollback
+    render :new, status: :unprocessable_entity
   end
 
   # Shows a single message.

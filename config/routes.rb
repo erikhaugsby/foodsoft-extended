@@ -12,7 +12,7 @@ Rails.application.routes.draw do
 
   root to: 'sessions#redirect_to_foodcoop', as: nil
 
-  scope '/:foodcoop', constraints: {foodcoop: /__FOODCOOPS__/} do
+  scope '/:foodcoop', constraints: { foodcoop: /__FOODCOOPS__/ } do
     use_doorkeeper
 
     # Root path
@@ -238,7 +238,7 @@ Rails.application.routes.draw do
         end
       end
 
-      resources :bank_transactions, only: %i[:index, :show]
+      resources :bank_transactions, only: %i[index show]
     end
 
     ########### Administration
@@ -303,7 +303,7 @@ Rails.application.routes.draw do
         resources :order_articles, only: %i[index show]
         resources :group_order_articles
         resources :article_categories, only: %i[index show]
-        resources :pickup        
+        resources :pickup
         resources :mirko
       end
     end

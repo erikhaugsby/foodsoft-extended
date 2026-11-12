@@ -32,7 +32,7 @@ class BankGatewayConnector
       iban = t.fetch(:account, {}).fetch(:iban)
 
       ba = BankAccount.find_by_iban iban
-      raise "Unknown BankAccount" unless ba
+      raise 'Unknown BankAccount' unless ba
 
       baii = BankAccountInformationImporter.new(ba)
       ret += baii.import_data! t
@@ -71,7 +71,7 @@ class BankGatewayConnector
       message = ret.message
       begin
         details = JSON.parse(ret.body, symbolize_names: true)[:message]
-      rescue
+      rescue StandardError
         details = ''
       end
       message = "#{message}: #{details}" if details

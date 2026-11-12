@@ -1,7 +1,7 @@
 module ApplicationCable
   class Channel < ActionCable::Channel::Base
     def self.broadcasting
-      "#{FoodsoftConfig.scope}::#{self.name}"
+      "#{FoodsoftConfig.scope}::#{name}"
     end
   end
 end

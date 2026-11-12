@@ -11,7 +11,7 @@ class ApplicationController < ActionController::Base
   after_action  :remove_controller
   around_action :set_time_zone, :set_currency
 
-  # needed for linking to attachments on locals storage 
+  # needed for linking to attachments on locals storage
   before_action do
     ActiveStorage::Current.url_options = { protocol: request.protocol, host: request.host, port: request.port }
   end

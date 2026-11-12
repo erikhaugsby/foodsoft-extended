@@ -24,6 +24,7 @@ module FoodsoftActiveStorageDiskService
         # puts 'FoodsoftActiveStorageDiskService------------------: '+FoodsoftConfig.scope
         File.join root, FoodsoftConfig.scope, folder_for(key), key
       end
+
       def generate_url(key, expires_in:, filename:, content_type:, disposition:)
         content_disposition = content_disposition_with(type: disposition, filename: filename)
         verified_key_with_expiration = ActiveStorage.verifier.generate(

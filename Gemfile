@@ -71,8 +71,8 @@ gem 'foodsoft_documents', path: 'plugins/documents'
 gem 'foodsoft_links', path: 'plugins/links'
 gem 'foodsoft_messages', path: 'plugins/messages'
 gem 'foodsoft_polls', path: 'plugins/polls'
-gem 'foodsoft_wiki', path: 'plugins/wiki'
 gem 'foodsoft_pyapp', path: 'plugins/pyapp'
+gem 'foodsoft_wiki', path: 'plugins/wiki'
 
 # plugins not enabled by default
 # gem 'foodsoft_current_orders', path: 'plugins/current_orders'

@@ -241,6 +241,7 @@ class Order < ApplicationRecord
   # Ignored if the order is already finished.
   def finish!(user)
     return if finished?
+
     printer_finish!(user)
     Order.transaction do
       # set new order state (needed by notify_order_finished)
@@ -313,7 +314,7 @@ class Order < ApplicationRecord
     update!(state: 'closed', updated_by: user)
   end
 
-  def send_to_supplier!(user)
+  def send_to_supplier!(_user)
     SendOrderToSupplierJob.perform_later(self)
   end
 

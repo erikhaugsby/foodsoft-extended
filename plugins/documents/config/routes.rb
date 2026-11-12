@@ -1,5 +1,5 @@
 Rails.application.routes.draw do
-  scope '/:foodcoop', constraints: {foodcoop: /__FOODCOOPS__/} do
+  scope '/:foodcoop', constraints: { foodcoop: /__FOODCOOPS__/ } do
     resources :documents do
       get :move
       get :new

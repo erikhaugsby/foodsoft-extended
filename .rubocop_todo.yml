@@ -426,7 +426,7 @@ RSpec/MultipleExpectations:
 # Offense count: 38
 # Configuration parameters: AllowSubject.
 RSpec/MultipleMemoizedHelpers:
-  Max: 15
+  Max: 20
 
 # Offense count: 8
 # Configuration parameters: AllowedGroups.

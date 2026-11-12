@@ -88,9 +88,7 @@ class Finance::InvoicesController < ApplicationController
   end
 
   def pay
-    unless params[:invoices]
-      return redirect_to unpaid_finance_invoices_path, alert: I18n.t('finance.invoices.controller.pay.no_invoices'), allow_other_host:true
-    end
+    return redirect_to unpaid_finance_invoices_path, alert: I18n.t('finance.invoices.controller.pay.no_invoices'), allow_other_host: true unless params[:invoices]
 
     ids = params[:invoices].map(&:to_i)
     invoices = Invoice.includes(:supplier).where(id: ids)
@@ -99,9 +97,7 @@ class Finance::InvoicesController < ApplicationController
                     .includes({ bank_accounts: { supplier_categories: { suppliers: :invoices } } })
                     .where({ invoices: { id: ids } })
 
-    unless bank_gateways.length == 1
-      return redirect_to unpaid_finance_invoices_path, alert: I18n.t('finance.invoices.controller.pay.multiple_bank_gateways')
-    end
+    return redirect_to unpaid_finance_invoices_path, alert: I18n.t('finance.invoices.controller.pay.multiple_bank_gateways') unless bank_gateways.length == 1
 
     bank_gateway = bank_gateways.first
 
