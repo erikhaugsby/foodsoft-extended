@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     services:
       mariadb:
@@ -33,15 +33,19 @@ jobs:
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Setup chromedriver
         uses: nanasess/setup-chromedriver@v2
         with:
           chromedriver-version: '115.0.5790.170' # https://github.com/nanasess/setup-chromedriver/issues/200
+      - name: Install system libraries for native gems
+        run: sudo apt-get update && sudo apt-get install -y libmagic-dev
       - name: Setup ruby
         uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
+      - name: Fill in the foodcoop route constraint (done by docker-entrypoint.sh in production)
+        run: sed -i 's/__FOODCOOPS__/f/g' config/routes.rb plugins/*/config/routes.rb
       - name: Initialize stock configuration
         run: bundle exec rake foodsoft:setup:stock_config
       - name: Load database schema

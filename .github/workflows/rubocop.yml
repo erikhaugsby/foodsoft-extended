@@ -2,16 +2,25 @@ name: RuboCop
 
 on: [push, pull_request]
 
+# Foodsoft upstream has several hundred existing offenses. This fork checks only
+# the lines it changed compared to the upstream commit it is based on.
+env:
+  UPSTREAM_BASE: c5788b0a5a4ddced539a59e7d17d387b4d1f97cc
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install system libraries for native gems
+        run: sudo apt-get update && sudo apt-get install -y libmagic-dev
       - name: Setup ruby
         uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
-      - name: Run RuboCop
-        run: bundle exec rubocop --format github --parallel
+      - name: Run RuboCop on the lines this fork changed
+        run: ruby .github/scripts/rubocop_changed_lines.rb
