@@ -482,6 +482,8 @@ RSpec.configure do |config|
                   'finance:write': 'reading and creating financial transactions',
                   'user:read': 'reading your own user profile',
                   'user:write': 'reading and updating your own user profile',
+                  'messages:read': 'reading messages you may see',
+                  'messages:write': 'reading, sending, editing and deleting your messages',
                   offline_access: 'retain access after user has logged out'
                 }
               }

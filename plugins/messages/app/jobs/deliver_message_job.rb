@@ -5,6 +5,9 @@ class DeliverMessageJob < ApplicationJob
   retry_on Net::OpenTimeout, wait: :exponentially_longer, attempts: 5
 
   def perform(message)
+    # The sender deleted the message before it was delivered.
+    return if message.deleted?
+
     message.message_recipients.each do |message_recipient|
       # Skip the action if email_state is :sent
       next if message_recipient.email_state == 'sent'

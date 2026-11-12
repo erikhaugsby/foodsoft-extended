@@ -94,3 +94,39 @@ http://localhost:3002/f/api/v1/financial_transactions/1?access_token=12345...
 
 When the user logs out of Foodsoft, all access tokens are destroyed, except when
 the token's scope includes `offline_access` (so offline applications are possible).
+
+
+## Messages
+
+Available when the messages plugin is enabled (otherwise every endpoint answers
+`404`). Scopes: `messages:read` to read, `messages:write` to read, send, edit and
+delete. Any member may use them; which messages a user sees follows the website
+(public messages, plus private ones the user sent or received).
+
+| Endpoint | What it does |
+|---|---|
+| `GET /api/v1/messages` | Readable messages, newest first, without deleted ones. `threads=true` lists only the first message of each thread (deleted ones included). Paginated with `page` and `per_page`. |
+| `GET /api/v1/messages/{id}` | One message, with its recipients. |
+| `GET /api/v1/messages/{id}/thread` | All readable messages of the thread, oldest first, including deleted ones as placeholders. |
+| `GET /api/v1/messages/recipients?q=...` | Users and groups (workgroups, ordergroups, message groups) whose name matches, at least 2 characters. |
+| `POST /api/v1/messages` | Sends a message, see below. |
+| `PATCH /api/v1/messages/{id}` | Sender only: changes `subject` and/or `body`, sets `edited_at`. |
+| `DELETE /api/v1/messages/{id}` | Sender or admin: removes the text and marks the message deleted; the subject stays as thread title. Answers `204`. |
+
+Body for `POST` (wrapped in `message`):
+
+- `send_method`: `recipients` (default), `all`, `workgroup`, `ordergroup`,
+  `messagegroup` or `order`. `all` is refused when a mailing list is configured,
+  as on the website.
+- `recipient_ids`, `group_id` (for the three group methods), `order_id` (for `order`).
+- `subject`, `body` (plain text; line breaks are kept), `private`.
+- `reply_to`: id of a readable message. The reply goes to the original sender
+  (and group), into the same thread, with the original's privacy and a "Re:"
+  subject unless given.
+
+`body` is returned as plain text, `body_html` as HTML; both are `null` for
+deleted messages. `can_edit` and `can_delete` tell the app which buttons to show.
+
+Every message is also emailed to recipients who receive email. Editing or
+deleting a message changes it in Foodsoft only; emails that were already sent
+stay as they were. A message deleted before its email job runs is not emailed.
