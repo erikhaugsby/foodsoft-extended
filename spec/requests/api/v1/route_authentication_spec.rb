@@ -10,9 +10,17 @@ describe 'API authentication on every route' do
       verb = route.verb.to_s
       next if verb.blank? || path.exclude?('/api/v1/')
 
+      next unless implemented?(route)
+
       url = path.sub('(.:format)', '').gsub(':foodcoop', FoodsoftConfig.scope).gsub(/:\w+/, '1')
       [verb.split('|').first, url]
     end.uniq
+  end
+
+  # Routes without code behind them (e.g. +resources+ with more actions than the controller has) are skipped.
+  def self.implemented?(route)
+    controller = "#{route.defaults[:controller]}_controller".camelize.safe_constantize
+    controller&.action_methods&.include?(route.defaults[:action].to_s)
   end
 
   it 'finds the API routes' do
