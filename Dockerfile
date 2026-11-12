@@ -21,7 +21,7 @@ ENV PORT=3000 \
 
 WORKDIR /usr/src/app
 
-RUN --mount=type=cache,target=/var/cache/apt/ \
+RUN --mount=type=cache,target=/var/cache/apt/,sharing=locked \
     buildDeps='libmagic-dev mariadb-server nodejs' && \
     # Fix for Debian Bullseye EOL: use archive repository
     # Comment out security repo since bullseye-security is no longer available
