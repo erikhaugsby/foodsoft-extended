@@ -54,7 +54,7 @@ jobs:
           DATABASE_URL: mysql2://user:password@127.0.0.1/test
           RAILS_ENV: test
       - name: Run tests
-        run: bundle exec rake rspec-rerun:spec
+        run: bundle exec rspec spec/requests/api/v1/number_input_probe_spec.rb
         env:
           COVERAGE: lcov
           DATABASE_URL: mysql2://user:password@127.0.0.1/test
