@@ -42,7 +42,8 @@ module Concerns::AuthApi
   # Make sure that at least one the given OAuth scopes is valid for the current user's permissions.
   # @raise Api::Errors::PermissionsRequired
   def doorkeeper_authorize_roles!(*scopes)
-    return if scopes.any? { |scope| doorkeeper_scope_permitted?(scope) }
+    # the token must hold the very scope that the user's roles permit, not just any of the listed ones
+    return if scopes.any? { |scope| doorkeeper_token&.scopes&.exists?(scope) && doorkeeper_scope_permitted?(scope) }
 
     raise Api::Errors::PermissionRequired, 'Forbidden, no permission'
   end

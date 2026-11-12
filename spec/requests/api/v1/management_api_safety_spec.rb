@@ -148,6 +148,74 @@ describe 'Management API safety' do
     end
   end
 
+  describe 'token scope and role must match' do
+    it 'refuses suppliers to a token for reading articles held by a member of the invoices team' do
+      call :get, '/suppliers', headers_for(create(:user, :role_invoices), ['articles:read'])
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it 'refuses articles to an orders token held by an article manager without the orders role' do
+      call :get, '/articles', headers_for(create(:user, :role_article_meta), ['orders:write'])
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
+  describe 'linking invoices to orders' do
+    let(:user) { create(:user, :role_invoices) }
+    let(:headers) { headers_for(user, all_scopes) }
+    let(:paid_invoice) { create(:invoice, supplier: other_supplier, paid_on: Date.current) }
+    let(:foreign_order) { create(:order, supplier: other_supplier).tap { |o| o.update!(invoice: paid_invoice) } }
+
+    it 'refuses orders of another supplier or another invoice' do
+      call :post, '/invoices', headers, { invoice: { supplier_id: supplier.id, number: '10', amount: 1,
+                                                     order_ids: [foreign_order.id] } }
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(foreign_order.reload.invoice).to eq paid_invoice
+    end
+
+    it 'refuses moving an order of the same supplier away from another invoice' do
+      own = create(:invoice, supplier: supplier, created_by: user)
+      taken = create(:order, supplier: supplier).tap { |o| o.update!(invoice: invoice) }
+      call :patch, "/invoices/#{own.id}", headers, { invoice: { order_ids: [taken.id] } }
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(taken.reload.invoice).to eq invoice
+    end
+
+    it 'links a free order of the same supplier' do
+      call :post, '/invoices', headers, { invoice: { supplier_id: supplier.id, number: '11', amount: 1,
+                                                     order_ids: [order.id] } }
+      expect(response).to have_http_status(:created)
+      expect(order.reload.invoice_id).to eq json['invoice']['id']
+    end
+  end
+
+  describe 'invoice files' do
+    let(:headers) { headers_for(create(:user, :role_finance), all_scopes) }
+
+    def upload(content, type, name)
+      file = Rack::Test::UploadedFile.new(StringIO.new(content), type, original_filename: name)
+      process :post, '/f/api/v1/invoices', headers: headers,
+                                           params: { invoice: { supplier_id: supplier.id, number: name, amount: 1 },
+                                                     attachments: [file] }
+    end
+
+    it 'refuses unknown content named and declared as an image' do
+      upload(Random.bytes(2000), 'image/png', 'x.png')
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it 'refuses files over 10 MB' do
+      upload("%PDF-1.4\n#{'0' * 10.megabytes}\n%%EOF\n", 'application/pdf', 'big.pdf')
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it 'accepts a real PDF and stores its content' do
+      upload("%PDF-1.4\n%%EOF\n", 'application/pdf', 'ok.pdf')
+      expect(response).to have_http_status(:created)
+      expect(Invoice.find(json['invoice']['id']).attachments.first.download).to start_with('%PDF')
+    end
+  end
+
   describe 'the app’s probe requests change nothing' do
     it 'answers 403 to members without the orders role and changes no order' do
       user = create(:user, :ordergroup)
