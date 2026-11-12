@@ -62,6 +62,8 @@ module Concerns::AuthApi
     when 'users'          then return current_user.role_admin?
     when 'workgroups'     then return current_user.role_admin?
     when 'suppliers'      then return current_user.role_suppliers?
+    when 'articles'       then return current_user.role_article_meta?
+    when 'invoices'       then return current_user.role_finance? || current_user.role_invoices?
     when 'group_orders'   then return current_user.role_orders?
     when 'finance'        then return current_user.role_finance?
     when 'messages'       then return true # members' messages, readability is checked per message

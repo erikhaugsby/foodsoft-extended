@@ -57,6 +57,9 @@ Doorkeeper.configure do
                   'finance:read', 'finance:write',
                   'orders:write',
                   'messages:read', 'messages:write',
+                  'articles:read', 'articles:write',
+                  'invoices:read', 'invoices:write',
+                  'suppliers:read',
                   'user:write',
                   'offline_access'
 

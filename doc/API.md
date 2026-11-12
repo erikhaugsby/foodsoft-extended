@@ -130,3 +130,32 @@ deleted messages. `can_edit` and `can_delete` tell the app which buttons to show
 Every message is also emailed to recipients who receive email. Editing or
 deleting a message changes it in Foodsoft only; emails that were already sent
 stay as they were. A message deleted before its email job runs is not emailed.
+
+## Managing orders, articles and invoices
+
+Besides the member functions, the API offers a number of endpoints for members
+with a role in the foodcoop. They need an access token with one of the optional
+scopes below, _and_ the user needs the matching role.
+
+| Scope | Role | Endpoints |
+|---|---|---|
+| `orders:write` | orders | `POST /orders`, `PATCH /orders/{id}`, `POST /orders/{id}/finish` |
+| `orders:read` | orders or pickups | `GET /orders/{id}/documents/{document}` (PDF; `groups`, `articles`, `fax` or `matrix`) |
+| `articles:read`, `articles:write` | article meta | `GET/POST /articles`, `GET/PATCH/DELETE /articles/{id}` |
+| `invoices:read`, `invoices:write` | finance or invoices | `GET/POST /invoices`, `GET/PATCH /invoices/{id}`, `POST /invoices/{id}/attachments`, `GET/DELETE /invoices/{id}/attachments/{attachment_id}` |
+| `suppliers:read` (or any of the write scopes above) | any of the roles above | `GET /suppliers`, `GET /suppliers/{id}` |
+
+Request bodies are JSON objects wrapped in the resource name, for example
+`{"order": {"supplier_id": 3, "ends": "2024-05-10T18:00:00+02:00"}}`.
+
+* Opening an order without `article_ids` offers all available articles of the supplier.
+  Stock orders cannot be opened through the API yet.
+* `POST /orders/{id}/finish` closes an open order for ordering. Settling (accounting) is
+  not part of the API.
+* `DELETE /articles/{id}` marks the article as deleted; this is refused while the article
+  is part of an open order.
+* Files (JPEG, PNG or PDF, e.g. a photo of a receipt) are uploaded as `multipart/form-data`
+  in the field `attachments[]`, either together with the invoice fields on
+  `POST /invoices`, or later on `POST /invoices/{id}/attachments`.
+* As in the web interface, members with only the invoices role can change their own unpaid
+  invoices, and `paid_on` can only be set with the finance role.
