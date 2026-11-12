@@ -16,16 +16,16 @@ describe 'editing and deleting messages', :js, type: :feature do
   end
 
   def edit_link
-    "a[href='#{edit_message_path(message)}']"
+    "a[href='#{edit_message_path(id: message.id)}']"
   end
 
   def delete_link
-    "a[data-method='delete'][href='#{message_path(message)}']"
+    "a[data-method='delete'][href='#{message_path(id: message.id)}']"
   end
 
   it 'lets the sender change subject and text' do
     login sender
-    visit message_path(message)
+    visit message_path(id: message.id)
     find(edit_link).click
     fill_in 'message_subject', with: 'Pickup time changed'
     fill_in_rich_text_area with: 'Pickup at six'
@@ -41,19 +41,19 @@ describe 'editing and deleting messages', :js, type: :feature do
 
   it 'lets the sender delete a message after confirming' do
     login sender
-    visit message_path(message)
+    visit message_path(id: message.id)
     accept_confirm { find(delete_link).click }
 
     expect(page).to have_text I18n.t('messages.destroy.notice')
     expect(message.reload).to be_deleted
-    visit message_path(message)
+    visit message_path(id: message.id)
     expect(page).to have_text I18n.t('messages.deleted')
     expect(page).to have_no_text 'Pickup at five'
   end
 
   it 'shows recipients neither edit nor delete' do
     login recipient
-    visit message_path(message)
+    visit message_path(id: message.id)
     expect(page).to have_text 'Pickup at five'
     expect(page).to have_no_css(edit_link)
     expect(page).to have_no_css(delete_link)
@@ -61,7 +61,7 @@ describe 'editing and deleting messages', :js, type: :feature do
 
   it 'lets an admin delete, but not edit, messages of others' do
     login create(:admin)
-    visit message_path(message)
+    visit message_path(id: message.id)
     expect(page).to have_no_css(edit_link)
     expect(page).to have_css(delete_link)
   end
@@ -70,7 +70,7 @@ describe 'editing and deleting messages', :js, type: :feature do
     create_message(sender: recipient, recipient: sender, subject: 'Re: Pickup time', body: 'Thanks!', reply_to: message.id)
     message.soft_delete!
     login sender
-    visit thread_message_path(message)
+    visit thread_message_path(id: message.id)
     expect(page).to have_text I18n.t('messages.deleted')
     expect(page).to have_text 'Thanks!'
     expect(page).to have_no_text 'Pickup at five'

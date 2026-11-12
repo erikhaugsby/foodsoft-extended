@@ -162,6 +162,13 @@ describe 'Messages API' do
     context 'when the user is an admin' do
       let(:user) { create(:admin) }
 
+      it 'tells the app it may delete, as a boolean' do
+        other_message = create_message(sender: other_user, recipients: [third_user])
+        get "/f/api/v1/messages/#{other_message.id}", headers: headers
+        expect(json['message']['can_delete']).to be true
+        expect(json['message']['can_edit']).to be false
+      end
+
       it 'deletes messages of others' do
         other_message = create_message(sender: other_user, recipients: [third_user])
         delete "/f/api/v1/messages/#{other_message.id}", headers: headers

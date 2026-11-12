@@ -156,7 +156,7 @@ class Message < ApplicationRecord
   def can_delete?(user)
     return false if user.nil? || deleted?
 
-    sender_id == user.id || user.role_admin?
+    sender_id == user.id || user.role_admin?.present? # role_admin? returns a group
   end
 
   # Changes subject and text. Emails that were already sent are not changed.
