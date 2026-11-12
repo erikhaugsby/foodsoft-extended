@@ -174,7 +174,7 @@ describe OrderArticle do
       old_article_price = article.price
       new_article_price = old_article_price + 1
       order1.finish!(admin)
-      article.update_attributes!({ price: new_article_price })
+      article.update!(price: new_article_price)
       oa1.reload
       oa2.reload
       expect(oa1.price.price).to eq old_article_price
