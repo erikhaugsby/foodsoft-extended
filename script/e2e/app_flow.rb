@@ -98,6 +98,8 @@ group_orders = body(http(:get, "/api/v1/user/group_orders?q[order_id_in][]=#{ord
 check('who ordered last', group_orders.first&.dig('updated_by_name').to_s.include?('Member'), group_orders.inspect)
 
 # --- close the order, PDFs
+# Foodsoft needs the end to be after the start; real orders are never closed within a second of opening
+sleep 2
 res = http(:post, "/api/v1/orders/#{order_id}/finish", token: m)
 expect_status('POST /orders/:id/finish', res, 200)
 check('order is finished', body(res).dig('order', 'state') == 'finished')
