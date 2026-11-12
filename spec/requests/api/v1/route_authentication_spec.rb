@@ -8,7 +8,7 @@ describe 'API authentication on every route' do
     Rails.application.routes.routes.filter_map do |route|
       path = route.path.spec.to_s
       verb = route.verb.to_s
-      next if verb.blank? || !path.include?('/api/v1/')
+      next if verb.blank? || path.exclude?('/api/v1/')
 
       url = path.sub('(.:format)', '').gsub(':foodcoop', FoodsoftConfig.scope).gsub(/:\w+/, '1')
       [verb.split('|').first, url]

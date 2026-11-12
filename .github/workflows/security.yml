@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '2.7'
+          ruby-version: '3.3' # the scanners only read the code; they need a newer Ruby
       - name: Brakeman (static analysis of the Rails code)
         run: |
           gem install brakeman -v '~> 6.2' --no-document
@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '2.7'
+          ruby-version: '3.3' # the scanners only read the code; they need a newer Ruby
       - name: bundler-audit (known vulnerabilities in gems)
         run: |
           gem install bundler-audit --no-document
