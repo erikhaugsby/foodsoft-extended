@@ -56,6 +56,11 @@ class Api::V1::OrdersController < Api::V1::BaseController
     order = scope.find(params.require(:id))
     document = params.require(:document)
     raise ActiveRecord::RecordNotFound, 'Document not found' unless DOCUMENTS.include?(document)
+    # the PDF titles show the end date
+    if order.ends.nil?
+      return render status: :unprocessable_entity,
+                    json: { error: 'not_acceptable', error_description: 'The order has no end date yet' }
+    end
 
     send_order_pdf order, document
   end

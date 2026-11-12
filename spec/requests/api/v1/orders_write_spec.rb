@@ -95,7 +95,10 @@ describe 'Orders (write)' do
       end
 
       it_handles_invalid_token_with_id
-      it_cannot_find_object 'order not found'
+      # in a context, so that its +let(:id)+ does not replace the one above
+      context 'with an unknown id' do
+        it_cannot_find_object 'order not found'
+      end
     end
   end
 
@@ -140,6 +143,8 @@ describe 'Orders (write)' do
       let(:id) { existing_order.id }
       let(:document) { 'articles' }
 
+      before { existing_order.update!(ends: 1.day.from_now) }
+
       response '200', 'the PDF file' do
         run_test! do |response|
           expect(response.media_type).to eq 'application/pdf'
@@ -151,6 +156,15 @@ describe 'Orders (write)' do
         let(:user) { create(:user) }
 
         response '403', 'no permission' do
+          run_test!
+        end
+      end
+
+      context 'with an order without an end date' do
+        before { existing_order.update!(ends: nil) }
+
+        response '422', 'the order has no end date yet' do
+          schema '$ref' => '#/components/schemas/Error422'
           run_test!
         end
       end
