@@ -80,9 +80,8 @@ class MessagesController < ApplicationController
   def destroy
     message = Message.find(params[:id])
     # like the API: only messages you can read, so admins do not delete private messages unseen
-    unless message.is_readable_for?(current_user) && message.can_delete?(current_user)
-      return redirect_to(messages_url, alert: I18n.t('messages.destroy.not_allowed'))
-    end
+    allowed = message.is_readable_for?(current_user) && message.can_delete?(current_user)
+    return redirect_to(messages_url, alert: I18n.t('messages.destroy.not_allowed')) unless allowed
 
     message.soft_delete!
     redirect_to messages_url, notice: I18n.t('messages.destroy.notice')
