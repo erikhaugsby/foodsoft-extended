@@ -1,7 +1,7 @@
 class InvoiceSerializer < ActiveModel::Serializer
   attributes :id, :supplier_id, :supplier_name, :number, :date, :paid_on, :note
   attributes :amount, :deposit, :deposit_credit
-  attributes :created_at, :created_by_user_id, :order_ids, :attachments
+  attributes :created_at, :created_by_user_id, :order_ids, :attachments, :can_edit
 
   def supplier_name
     object.supplier.try(:name)
@@ -17,6 +17,11 @@ class InvoiceSerializer < ActiveModel::Serializer
 
   def deposit_credit
     object.deposit_credit.to_f
+  end
+
+  # as on the website: the finance role, or the creator of an unpaid invoice with the invoices role
+  def can_edit
+    scope.present? && object.user_can_edit?(scope)
   end
 
   def order_ids

@@ -215,6 +215,7 @@ RSpec.configure do |config|
               created_at: { type: :string, format: 'date-time', nullable: true },
               created_by_user_id: { type: :integer, nullable: true },
               order_ids: { type: :array, items: { type: :integer } },
+              can_edit: { type: :boolean, description: 'whether the current user may change this invoice' },
               attachments: {
                 type: :array,
                 items: {
