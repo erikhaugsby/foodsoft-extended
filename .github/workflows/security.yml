@@ -1,0 +1,38 @@
+name: Security scans
+
+on: [push, pull_request]
+
+jobs:
+  brakeman:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3' # the scanners only read the code; they need a newer Ruby
+      - name: Brakeman (static analysis), new warnings only
+        # .github/brakeman-baseline.txt lists fingerprints of warnings in the existing code;
+        # only warnings that are not in it are shown and fail the check.
+        run: |
+          gem install brakeman -v '~> 6.2' --no-document
+          brakeman --no-pager --quiet --format json --output brakeman.json || true
+          ruby -rjson -e '
+            known = File.readlines(".github/brakeman-baseline.txt", chomp: true)
+            new = JSON.parse(File.read("brakeman.json"))["warnings"].reject { |w| known.include?(w["fingerprint"]) }
+            new.each { |w| puts "::error file=#{w["file"]},line=#{w["line"]}::#{w["warning_type"]}: #{w["message"]}" }
+            puts "#{new.size} new Brakeman warnings"
+            exit(new.empty? ? 0 : 1)'
+
+  bundler-audit:
+    runs-on: ubuntu-22.04
+    # Foodsoft's old Rails and gems have known advisories; shown for information.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3' # the scanners only read the code; they need a newer Ruby
+      - name: bundler-audit (known vulnerabilities in gems)
+        run: |
+          gem install bundler-audit --no-document
+          bundle-audit check --update
