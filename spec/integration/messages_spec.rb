@@ -1,6 +1,7 @@
 require_relative '../spec_helper'
+require 'action_text/system_test_helper'
 
-feature 'editing and deleting messages', :js do
+describe 'editing and deleting messages', :js, type: :feature do
   include ActionText::SystemTestHelper
 
   let(:sender) { create(:user) }
