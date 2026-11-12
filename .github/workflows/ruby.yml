@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     services:
       mariadb:
@@ -39,7 +39,7 @@ jobs:
         with:
           chromedriver-version: '115.0.5790.170' # https://github.com/nanasess/setup-chromedriver/issues/200
       - name: Install system libraries for native gems
-        run: sudo apt-get update && sudo apt-get install -y libmagic-dev libmysqlclient-dev
+        run: sudo apt-get update && sudo apt-get install -y libmagic-dev
       - name: Setup ruby
         uses: ruby/setup-ruby@v1
         with:
