@@ -23,7 +23,7 @@ class GroupOrder < ApplicationRecord
   scope :ordered, -> { includes(:ordergroup).order('groups.name') }
 
   def self.ransackable_attributes(_auth_object = nil)
-    %w[id price]
+    %w[id price order_id]
   end
 
   def self.ransackable_associations(_auth_object = nil)

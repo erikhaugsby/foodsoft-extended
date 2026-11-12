@@ -4,7 +4,8 @@ class Api::V1::ArticlesController < Api::V1::BaseController
   ATTRIBUTES = %i[name article_category_id unit unit_quantity note manufacturer origin order_number
                   price tax deposit availability].freeze
 
-  before_action -> { doorkeeper_authorize! 'articles:read', 'articles:write' }
+  # Members with the orders role may read articles too, to choose an order's articles.
+  before_action -> { doorkeeper_authorize! 'articles:read', 'articles:write', 'orders:write' }, only: %i[index show]
   before_action -> { doorkeeper_authorize! 'articles:write' }, only: %i[create update destroy]
 
   def index

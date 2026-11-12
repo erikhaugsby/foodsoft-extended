@@ -293,6 +293,7 @@ Rails.application.routes.draw do
           root to: 'users#show'
           get :financial_overview, to: 'ordergroup#financial_overview'
           resources :financial_transactions, only: %i[index show create]
+          resources :group_orders, only: %i[index show]
           resources :group_order_articles
         end
 
