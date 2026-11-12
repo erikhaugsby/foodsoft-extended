@@ -1,0 +1,31 @@
+name: Security scans
+
+on: [push, pull_request]
+
+jobs:
+  brakeman:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+      - name: Brakeman (static analysis of the Rails code)
+        run: |
+          gem install brakeman -v '~> 6.2' --no-document
+          brakeman --no-pager --quiet --format json --output brakeman.json || true
+          ruby -rjson -e 'r = JSON.parse(File.read("brakeman.json")); r["warnings"].each { |w| puts [w["fingerprint"], w["warning_type"], w["file"], w["line"], w["confidence"]].join("\t") }; puts "#{r["warnings"].size} warnings"'
+
+  bundler-audit:
+    runs-on: ubuntu-22.04
+    # Foodsoft's old Rails and gems have known advisories; shown for information.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+      - name: bundler-audit (known vulnerabilities in gems)
+        run: |
+          gem install bundler-audit --no-document
+          bundle-audit check --update
