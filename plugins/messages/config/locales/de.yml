@@ -78,6 +78,15 @@ de:
       new: Neue Nachricht
     create:
       notice: Nachricht ist gespeichert und wird versendet.
+    deleted: Diese Nachricht wurde gelöscht.
+    destroy:
+      not_allowed: Du kannst diese Nachricht nicht löschen.
+      notice: Die Nachricht wurde gelöscht. Bereits verschickte E-Mails können nicht geändert werden.
+    edit:
+      hint_email: Bereits verschickte E-Mails bleiben, wie sie sind. Nur die Nachricht in Foodsoft ändert sich.
+      not_allowed: Nur wer die Nachricht geschrieben hat, kann sie bearbeiten.
+      submit: Änderungen speichern
+      title: Nachricht bearbeiten
     index:
       title: Nachrichten
     messages:
@@ -103,6 +112,8 @@ de:
       search_user: Nach Bernutzer/in suchen
       title: Neue Nachricht
     show:
+      confirm_delete: Diese Nachricht löschen? Ihr Text wird entfernt. Bereits verschickte E-Mails können nicht geändert werden.
+      edited_on: 'Bearbeitet:'
       all_messages: Nachrichten im Überblick
       change_visibility: 'Ändern'
       from: ! 'Von:'
@@ -120,8 +131,11 @@ de:
       all_message_threads: Alle Nachrichtenverläufe
       reply: Antworten
       recipients: Empfänger_innen
+      edited: (bearbeitet %{when})
     toggle_private:
       not_allowed: Du kannst die Sichtbarkeit dieser Nachricht nicht ändern.
+    update:
+      notice: Die Nachricht wurde geändert. Bereits verschickte E-Mails können nicht geändert werden.
   message_threads:
     groupmessage_threads:
       show_message_threads: Alle Nachrichtenverläufe anzeigen

@@ -3,7 +3,7 @@ class MessagesController < ApplicationController
 
   # Renders the "inbox" action.
   def index
-    @messages = Message.readable_for(current_user).page(params[:page]).per(@per_page).order('created_at DESC').includes(:sender)
+    @messages = Message.readable_for(current_user).not_deleted.page(params[:page]).per(@per_page).order('created_at DESC').includes(:sender)
   end
 
   # Creates a new message object.
@@ -33,7 +33,8 @@ class MessagesController < ApplicationController
   def create
     ActiveRecord::Base.transaction do
       @current_user.with_lock do
-        @message = @current_user.send_messages.new(params[:message])
+        # edited_at and deleted_at are set only by editing and deleting
+        @message = @current_user.send_messages.new(params[:message].except(:edited_at, :deleted_at))
         Rails.logger.info "Message column names: #{@message.class.column_names.inspect}"
         if @message.save
           DeliverMessageJob.perform_later(@message)
@@ -55,6 +56,35 @@ class MessagesController < ApplicationController
     return if @message.is_readable_for?(current_user)
 
     redirect_to messages_url, alert: I18n.t('messages.new.error_private')
+  end
+
+  def edit
+    @message = Message.find(params[:id])
+    return if @message.can_edit?(current_user)
+
+    redirect_to @message, alert: I18n.t('messages.edit.not_allowed')
+  end
+
+  # Changes subject and text. Emails that were already sent stay as they were.
+  def update
+    @message = Message.find(params[:id])
+    return redirect_to(@message, alert: I18n.t('messages.edit.not_allowed')) unless @message.can_edit?(current_user)
+
+    @message.edit!(subject: params[:message][:subject], body: params[:message][:body])
+    redirect_to @message, notice: I18n.t('messages.update.notice')
+  rescue ActiveRecord::RecordInvalid
+    render :edit, status: :unprocessable_entity
+  end
+
+  # Deletes the text, but keeps the message as a placeholder in its thread.
+  def destroy
+    message = Message.find(params[:id])
+    # like the API: only messages you can read, so admins do not delete private messages unseen
+    allowed = message.is_readable_for?(current_user) && message.can_delete?(current_user)
+    return redirect_to(messages_url, alert: I18n.t('messages.destroy.not_allowed')) unless allowed
+
+    message.soft_delete!
+    redirect_to messages_url, notice: I18n.t('messages.destroy.notice')
   end
 
   def toggle_private

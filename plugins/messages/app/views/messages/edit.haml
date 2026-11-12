@@ -1,0 +1,10 @@
+- title t('.title')
+
+%p= t '.hint_email'
+
+= simple_form_for @message do |f|
+  = f.input :subject, input_html: {class: 'input-xxlarge'}
+  = f.rich_text_area :body, input_html: {class: 'input-xxlarge', rows: 13}
+  .form-actions
+    = f.submit t('.submit'), class: 'btn btn-primary'
+    = link_to t('ui.or_cancel'), message_path(@message)

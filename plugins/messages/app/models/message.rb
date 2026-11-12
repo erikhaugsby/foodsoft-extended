@@ -11,6 +11,7 @@ class Message < ApplicationRecord
   attr_accessor :send_method, :recipient_tokens, :order_id, :mrecipients_ids
 
   scope :threads, -> { where(reply_to: nil) }
+  scope :not_deleted, -> { where(deleted_at: nil) }
   scope :thread, ->(id) { where('id = ? OR reply_to = ?', id, id) }
   scope :readable_for, lambda { |user|
     return none unless user
@@ -134,6 +135,46 @@ class Message < ApplicationRecord
 
   def is_readable_for?(user)
     !private || sender == user || message_recipients.where(user: user).any?
+  end
+
+  def deleted?
+    deleted_at.present?
+  end
+
+  def edited?
+    edited_at.present?
+  end
+
+  # Only the sender can change subject and text of a message, as long as it is not deleted.
+  def can_edit?(user)
+    return false if user.nil? || deleted? || system_message?
+
+    sender_id == user.id
+  end
+
+  # The sender and admins can delete a message.
+  def can_delete?(user)
+    return false if user.nil? || deleted?
+
+    sender_id == user.id || user.role_admin?.present? # role_admin? returns a group
+  end
+
+  # Changes subject and text. Emails that were already sent are not changed.
+  def edit!(subject:, body:)
+    self.subject = subject unless subject.nil?
+    self.body = body unless body.nil?
+    self.edited_at = Time.now
+    save!
+  end
+
+  # Deletes the text of a message, but keeps the record, so that replies in its thread
+  # still make sense. The subject is kept as the title of the thread.
+  # Emails that were already sent are not changed.
+  def soft_delete!
+    transaction do
+      rich_text_body&.destroy
+      update_columns(deleted_at: Time.now)
+    end
   end
 
   def can_toggle_private?(user)
