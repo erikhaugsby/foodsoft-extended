@@ -55,6 +55,7 @@ class Api::V1::MessagesController < Api::V1::BaseController
     data = params.require(:message)
     send_method = data[:send_method].presence || 'recipients'
     return unprocessable("Unknown send_method '#{send_method}'") unless SEND_METHODS.include?(send_method)
+
     all_refused = send_method == 'all' && FoodsoftConfig[:mailing_list].present?
     return unprocessable('Sending to all members is not allowed, please use the mailing list') if all_refused
 
