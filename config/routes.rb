@@ -293,13 +293,28 @@ Rails.application.routes.draw do
           root to: 'users#show'
           get :financial_overview, to: 'ordergroup#financial_overview'
           resources :financial_transactions, only: %i[index show create]
+          resources :group_orders, only: %i[index show]
           resources :group_order_articles
         end
 
         resources :financial_transaction_classes, only: %i[index show]
         resources :financial_transaction_types, only: %i[index show]
         resources :financial_transactions, only: %i[index show]
-        resources :orders, only: %i[index show]
+        resources :orders, only: %i[index show create update] do
+          member do
+            post :finish
+            get 'documents/:document', to: 'orders#document', as: :document
+          end
+        end
+        resources :suppliers, only: %i[index show]
+        resources :articles, only: %i[index show create update destroy]
+        resources :invoices, only: %i[index show create update] do
+          member do
+            post 'attachments', to: 'invoices#create_attachment'
+            get 'attachments/:attachment_id', to: 'invoices#attachment', as: :attachment
+            delete 'attachments/:attachment_id', to: 'invoices#destroy_attachment'
+          end
+        end
         resources :order_articles, only: %i[index show]
         resources :group_order_articles
         resources :article_categories, only: %i[index show]

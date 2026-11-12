@@ -42,7 +42,8 @@ module Concerns::AuthApi
   # Make sure that at least one the given OAuth scopes is valid for the current user's permissions.
   # @raise Api::Errors::PermissionsRequired
   def doorkeeper_authorize_roles!(*scopes)
-    return if scopes.any? { |scope| doorkeeper_scope_permitted?(scope) }
+    # the token must hold the very scope that the user's roles permit, not just any of the listed ones
+    return if scopes.any? { |scope| doorkeeper_token&.scopes&.exists?(scope) && doorkeeper_scope_permitted?(scope) }
 
     raise Api::Errors::PermissionRequired, 'Forbidden, no permission'
   end
@@ -62,6 +63,9 @@ module Concerns::AuthApi
     when 'users'          then return current_user.role_admin?
     when 'workgroups'     then return current_user.role_admin?
     when 'suppliers'      then return current_user.role_suppliers?
+    when 'articles'
+      return current_user.role_article_meta? || (scope == 'articles:read' && current_user.role_orders?)
+    when 'invoices'       then return current_user.role_finance? || current_user.role_invoices?
     when 'group_orders'   then return current_user.role_orders?
     when 'finance'        then return current_user.role_finance?
     when 'messages'       then return true # members' messages, readability is checked per message
