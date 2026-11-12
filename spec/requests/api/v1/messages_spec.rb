@@ -177,6 +177,49 @@ describe 'Messages API' do
     end
   end
 
+  describe 'safety' do
+    let(:strangers_private) { create_message(sender: other_user, recipients: [third_user], private: true) }
+
+    it 'hides private messages of others from every action, also for admins' do
+      [user, create(:admin)].each do |member|
+        h = { 'Authorization' => "Bearer #{create(:oauth2_access_token, resource_owner_id: member.id, scopes: api_scopes.join(' ')).token}" }
+        get "/f/api/v1/messages/#{strangers_private.id}/thread", headers: h
+        expect(response).to have_http_status(:not_found)
+        patch "/f/api/v1/messages/#{strangers_private.id}", headers: h, as: :json, params: { message: { body: 'X' } }
+        expect(response).to have_http_status(:not_found)
+        delete "/f/api/v1/messages/#{strangers_private.id}", headers: h
+        expect(response).to have_http_status(:not_found)
+        post '/f/api/v1/messages', headers: h, as: :json, params: { message: { reply_to: strangers_private.id, body: 'X' } }
+        expect(response).to have_http_status(:not_found)
+      end
+      expect(strangers_private.reload).not_to be_deleted
+      expect(strangers_private.body.to_plain_text).to eq 'Some text'
+    end
+
+    it 'ignores sender, timestamps and deletion sent along with a new message' do
+      post '/f/api/v1/messages', headers: headers, as: :json,
+                                 params: { message: { subject: 'S', body: 'B', recipient_ids: [other_user.id],
+                                                      sender_id: other_user.id, deleted_at: Time.now,
+                                                      edited_at: Time.now, created_at: 1.year.ago } }
+      message = Message.find(json['message']['id'])
+      expect(message.sender).to eq user
+      expect(message.deleted_at).to be_nil
+      expect(message.edited_at).to be_nil
+      expect(message.created_at).to be > 1.minute.ago
+    end
+
+    it 'does not let the website create pre-deleted or pre-edited messages' do
+      post '/f/sessions', params: { nick: user.email, password: user.password }
+      post '/f/messages', params: { message: { subject: 'Web', body: 'B', send_method: 'recipients',
+                                               recipient_tokens: other_user.id.to_s,
+                                               deleted_at: Time.now, edited_at: Time.now } }
+      message = Message.find_by(subject: 'Web')
+      expect(message).to be_present
+      expect(message.deleted_at).to be_nil
+      expect(message.edited_at).to be_nil
+    end
+  end
+
   describe 'GET /messages/recipients' do
     it 'finds users by name' do
       found = create(:user, first_name: 'Zebedäus')

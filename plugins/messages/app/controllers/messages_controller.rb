@@ -33,7 +33,8 @@ class MessagesController < ApplicationController
   def create
     ActiveRecord::Base.transaction do
       @current_user.with_lock do
-        @message = @current_user.send_messages.new(params[:message])
+        # edited_at and deleted_at are set only by editing and deleting
+        @message = @current_user.send_messages.new(params[:message].except(:edited_at, :deleted_at))
         Rails.logger.info "Message column names: #{@message.class.column_names.inspect}"
         if @message.save
           DeliverMessageJob.perform_later(@message)
@@ -78,7 +79,10 @@ class MessagesController < ApplicationController
   # Deletes the text, but keeps the message as a placeholder in its thread.
   def destroy
     message = Message.find(params[:id])
-    return redirect_to(message, alert: I18n.t('messages.destroy.not_allowed')) unless message.can_delete?(current_user)
+    # like the API: only messages you can read, so admins do not delete private messages unseen
+    unless message.is_readable_for?(current_user) && message.can_delete?(current_user)
+      return redirect_to(messages_url, alert: I18n.t('messages.destroy.not_allowed'))
+    end
 
     message.soft_delete!
     redirect_to messages_url, notice: I18n.t('messages.destroy.notice')
