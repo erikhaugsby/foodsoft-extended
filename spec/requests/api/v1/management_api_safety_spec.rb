@@ -94,7 +94,7 @@ describe 'Management API safety' do
       created = Order.find(json['order']['id'])
       expect(created).to be_open
       expect(created.created_by).to eq user
-      expect(created.article_ids).to eq [article.id]
+      expect(created.article_ids.map(&:to_i)).to eq [article.id]
     end
 
     it 'does not change the state of an order through update' do
