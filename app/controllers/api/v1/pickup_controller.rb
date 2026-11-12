@@ -1,12 +1,11 @@
 class Api::V1::PickupController < Api::V1::BaseController
-
   def index
     # get group orders for ordergroup with ordergroup_id
     ordergroup_id = params.fetch(:ordergroup_id, nil) ||
-                    (current_user.ordergroup ? current_user.ordergroup.id : nil)
+                    current_user.ordergroup&.id
     base_scope = GroupOrder
                  .includes(group_order_articles: { order_article: :article },
-                order: %i[supplier comments])
+                           order: %i[supplier comments])
                  .references(:orders)
                  .where(ordergroup_id: ordergroup_id)
                  .limit(200)
@@ -51,7 +50,7 @@ class Api::V1::PickupController < Api::V1::BaseController
               deposit: goa.order_article.article.deposit,
               ordered: goa.quantity,
               tolerance: goa.tolerance,
-              received: goa.result}
+              received: goa.result }
           end,
           comments: go.order.comments
         }
@@ -69,14 +68,14 @@ class Api::V1::PickupController < Api::V1::BaseController
                             .select('memberships.user_id, groups.*')
       users = User.undeleted
                   .joins(
-          "LEFT JOIN (#{ordergroup_subquery.to_sql}) AS ordergroups
+                    "LEFT JOIN (#{ordergroup_subquery.to_sql}) AS ordergroups
           ON ordergroups.user_id = users.id"
-        )
+                  )
                   .select(
-          "users.*,
+                    "users.*,
           ordergroups.id   AS ordergroup_id,
           ordergroups.name AS ordergroup_name"
-        )
+                  )
       render json:
       {
         users: users.map do |user|
@@ -109,9 +108,10 @@ class Api::V1::PickupController < Api::V1::BaseController
               ends: order.ends,
               pickup: order.pickup,
               supplier_note: order.supplier ? order.supplier.note : '',
-              articles: # remove nil elements
-order.order_articles.map do |oa|
-                oa.group_order_articles.any? ? {
+              articles: order.order_articles.filter_map do |oa|
+                next unless oa.group_order_articles.any?
+
+                {
                   id: oa.id,
                   name: oa.article.name,
                   unit: oa.article.unit,
@@ -120,14 +120,14 @@ order.order_articles.map do |oa|
                   grouporders: oa.group_order_articles.map do |goa|
                     {
                       id: goa.id,
-                      ordergroup_name: (goa.group_order.ordergroup ? goa.group_order.ordergroup.name : 'none'),
+                      ordergroup_name: goa.group_order.ordergroup&.name || 'none',
                       ordered: goa.quantity,
                       tolerance: goa.tolerance,
                       received: goa.result
                     }
                   end
-                } : nil
-              end.compact, # remove nil elements
+                }
+              end,
               comments: order.comments
             }
           end
@@ -137,7 +137,7 @@ order.order_articles.map do |oa|
         orders = Order.where(
           state: %w[finished received closed],
           pickup: last_weeks
-          ).includes(:supplier)
+        ).includes(:supplier)
         render json:
         {
           orders: orders.map do |order|
