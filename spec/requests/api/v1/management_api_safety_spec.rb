@@ -4,8 +4,10 @@ require 'spec_helper'
 # each change needs both the right token scope and the right role, fields the
 # user must not control are ignored, and probe requests change nothing.
 describe 'Management API safety' do
+  # every scope that matters here (all of Foodsoft's scopes together exceed the 255 characters a token can store)
   def all_scopes
-    Doorkeeper.configuration.scopes.to_a.map(&:to_s)
+    %w[config:user user:read orders:read orders:write group_orders:user suppliers:read articles:read articles:write
+       invoices:read invoices:write finance:read finance:write]
   end
 
   let(:supplier) { create(:supplier, article_count: 2) }
