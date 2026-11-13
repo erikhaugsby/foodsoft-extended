@@ -120,7 +120,9 @@ class Api::V1::BaseController < ApplicationController
     # list searches (ransack) need an object; other actions may use q as plain search text
     return render_input_problem('q must be an object') if action_name == 'index' && data.key?('q') && !data['q'].is_a?(Hash)
 
-    problem = input_problem(data)
+    problems = input_problems(data)
+    # a malformed value (422) is reported before an id that cannot exist (404)
+    problem = problems.find { |p| p.is_a?(String) } || problems.first
     render_input_problem(problem) if problem
   end
 
@@ -132,15 +134,14 @@ class Api::V1::BaseController < ApplicationController
     end
   end
 
-  def input_problem(data)
+  def input_problems(data)
     case data
     when Hash
-      data.each do |key, value|
-        problem = param_problem(key.to_s, value) || (container?(value) && input_problem(value))
-        return problem if problem
+      data.flat_map do |key, value|
+        [param_problem(key.to_s, value)].compact + (container?(value) ? input_problems(value) : [])
       end
-      nil
-    when Array then data.lazy.map { |value| container?(value) ? input_problem(value) : nil }.find(&:itself)
+    when Array then data.flat_map { |value| container?(value) ? input_problems(value) : [] }
+    else []
     end
   end
 
@@ -149,9 +150,9 @@ class Api::V1::BaseController < ApplicationController
       "#{key} must be an object" unless value.is_a?(Hash)
     elsif key.end_with?('_ids')
       "#{key} must be a list of ids" unless value.is_a?(Array) && value.all? { |v| blank_or?(v) { integer?(v) } }
-    elsif key == 'id' # the id in the address: one with letters cannot exist
-      [:not_found, "#{value} not found"] unless blank_or?(value) { integer?(value) }
-    elsif INTEGER_PARAMS.include?(key) || key.end_with?('_id')
+    elsif key == 'id' || key.end_with?('_id') # an id with letters cannot exist
+      [:not_found, "#{key} #{value} not found"] unless blank_or?(value) { integer?(value) }
+    elsif INTEGER_PARAMS.include?(key)
       "#{key} must be a whole number" unless blank_or?(value) { integer?(value) && value.to_i >= minimum(key) }
     elsif DATE_PARAMS.include?(key)
       "#{key} must be a date like 2026-12-31 or 2026-12-31T18:00" unless blank_or?(value) { date?(value) }
