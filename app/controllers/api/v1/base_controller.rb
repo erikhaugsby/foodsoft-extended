@@ -12,17 +12,16 @@ class Api::V1::BaseController < ApplicationController
   before_action :skip_session
   before_action :authenticate
   # Whole numbers: digits only ("3", 3). Ids and id lists (*_id, *_ids) as well.
-  INTEGER_PARAMS = %w[id quantity tolerance unit_quantity page per_page].freeze
+  INTEGER_PARAMS = %w[quantity tolerance unit_quantity page per_page].freeze
   # Dates and times: ISO 8601 only (2026-12-31, 2026-12-31T18:00, 2026-12-31T18:00:00+01:00)
   DATE_PARAMS = %w[starts ends boxfill pickup date paid_on].freeze
   DATE_FORMAT = /\A(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?\z/
   BOOLEAN_PARAMS = %w[ignore_warnings availability private].freeze
   BOOLEAN_VALUES = [true, false, 'true', 'false', '1', '0', 1, 0].freeze
   # top-level request objects, e.g. {"order": {...}}
-  OBJECT_PARAMS = %w[order article invoice message group_order_article financial_transaction supplier q].freeze
+  OBJECT_PARAMS = %w[order article invoice message group_order_article financial_transaction supplier].freeze
 
   before_action :check_decimal_params, unless: -> { request.get? || request.head? }
-  before_action :check_input_params
 
   rescue_from ActiveRecord::RecordNotFound, with: :not_found_handler
   rescue_from ActiveRecord::RecordNotSaved, with: :not_acceptable_handler
@@ -105,13 +104,32 @@ class Api::V1::BaseController < ApplicationController
     value.strip.empty? || value.match?(DECIMAL_FORMAT) # blank is left to the model's presence checks
   end
 
-  # Checks the types of whole numbers, ids, dates, booleans and request objects anywhere in
-  # the params, so a wrong type gets a clear 422 instead of being misread or crashing.
-  def check_input_params
-    problem = input_problem(params.to_unsafe_h.except('controller', 'action', 'format', 'foodcoop'))
-    return unless problem
+  # Runs after all before_actions (login, scopes, roles), right before the action itself,
+  # so unauthorized requests still get 401/403 first.
+  def send_action(method_name, *args)
+    check_input_params
+    return if performed?
 
-    render status: :unprocessable_entity, json: { error: 'not_acceptable', error_description: problem }
+    super
+  end
+
+  # Checks the types of whole numbers, ids, dates, booleans and request objects anywhere in
+  # the params, so a wrong type gets a clear error instead of being misread or crashing.
+  def check_input_params
+    data = params.to_unsafe_h.except('controller', 'action', 'format', 'foodcoop')
+    # list searches (ransack) need an object; other actions may use q as plain search text
+    return render_input_problem('q must be an object') if action_name == 'index' && data.key?('q') && !data['q'].is_a?(Hash)
+
+    problem = input_problem(data)
+    render_input_problem(problem) if problem
+  end
+
+  def render_input_problem(problem)
+    if problem.is_a?(Array) # [:not_found, message]: an id with letters cannot exist
+      render status: :not_found, json: { error: 'not_found', error_description: problem.last }
+    else
+      render status: :unprocessable_entity, json: { error: 'not_acceptable', error_description: problem }
+    end
   end
 
   def input_problem(data)
@@ -131,7 +149,9 @@ class Api::V1::BaseController < ApplicationController
       "#{key} must be an object" unless value.is_a?(Hash)
     elsif key.end_with?('_ids')
       "#{key} must be a list of ids" unless value.is_a?(Array) && value.all? { |v| blank_or?(v) { integer?(v) } }
-    elsif INTEGER_PARAMS.include?(key) || key.end_with?('_id')
+    elsif key == 'id' || key.end_with?('_id')
+      [:not_found, "#{key} #{value} not found"] unless blank_or?(value) { integer?(value) }
+    elsif INTEGER_PARAMS.include?(key)
       "#{key} must be a whole number" unless blank_or?(value) { integer?(value) && value.to_i >= minimum(key) }
     elsif DATE_PARAMS.include?(key)
       "#{key} must be a date like 2026-12-31 or 2026-12-31T18:00" unless blank_or?(value) { date?(value) }

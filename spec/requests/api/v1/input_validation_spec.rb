@@ -49,9 +49,9 @@ describe 'API input validation' do
       expect(article.reload.unit_quantity).to eq 6
     end
 
-    it 'refuses path ids with letters' do
+    it 'does not find path ids with letters (no longer read as the number in front)' do
       api :get, "/orders/#{order.id}abc"
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:not_found)
     end
   end
 
