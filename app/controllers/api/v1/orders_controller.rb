@@ -86,6 +86,11 @@ class Api::V1::OrdersController < Api::V1::BaseController
   def article_ids_for(order)
     return nil unless order_params.key?(:article_ids)
 
+    if order.supplier.nil? # stock orders have no supplier articles to choose from
+      order.errors.add(:article_ids, 'can only be chosen for supplier orders')
+      raise ActiveRecord::RecordInvalid, order
+    end
+
     ids = Array(order_params[:article_ids]).compact_blank
     order.supplier.articles.undeleted.where(id: ids).pluck(:id)
   end
