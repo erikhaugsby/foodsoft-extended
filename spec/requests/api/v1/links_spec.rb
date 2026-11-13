@@ -2,7 +2,8 @@ require 'spec_helper'
 
 describe 'Links API' do
   let(:user) { create(:user) }
-  let(:team) { create(:workgroup) }
+  let(:team_member_ids) { [] }
+  let(:team) { create(:workgroup, user_ids: team_member_ids) }
   let(:headers) do
     { 'Authorization' => "Bearer #{create(:oauth2_access_token, resource_owner_id: user.id, scopes: 'config:user').token}" }
   end
@@ -22,10 +23,13 @@ describe 'Links API' do
     expect(response.body).not_to include('example.org', 'secret')
   end
 
-  it 'includes a workgroup link for its members' do
-    Group.find(team.id).update!(user_ids: [user.id])
-    get '/f/api/v1/links', headers: headers
-    expect(json['links'].pluck('name')).to eq %w[Accounting Calendar Webmail]
+  context "with a member of the link's workgroup" do
+    let(:team_member_ids) { [user.id] }
+
+    it 'includes the workgroup link' do
+      get '/f/api/v1/links', headers: headers
+      expect(json['links'].pluck('name')).to eq %w[Accounting Calendar Webmail]
+    end
   end
 
   it 'includes all links for admins' do
