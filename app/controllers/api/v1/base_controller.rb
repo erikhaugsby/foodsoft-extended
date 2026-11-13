@@ -3,13 +3,22 @@ class Api::V1::BaseController < ApplicationController
 
   protect_from_forgery with: :null_session
 
+  # Money and amount fields in requests: a number, or a string with digits and at most one
+  # dot as decimal separator ("130.5"). Commas, thousands separators and exponents are refused,
+  # whatever the user's language, so "130,5" or "1.300,50" never turn into a wrong amount.
+  DECIMAL_PARAMS = %w[price tax deposit amount deposit_credit result].freeze
+  DECIMAL_FORMAT = /\A\s*-?\d+(\.\d+)?\s*\z/
+
   before_action :skip_session
   before_action :authenticate
+  before_action :check_decimal_params, unless: -> { request.get? || request.head? }
 
   rescue_from ActiveRecord::RecordNotFound, with: :not_found_handler
   rescue_from ActiveRecord::RecordNotSaved, with: :not_acceptable_handler
   rescue_from ActiveRecord::RecordInvalid, with: :not_acceptable_handler
   rescue_from Api::Errors::PermissionRequired, with: :permission_required_handler
+  # values the database cannot hold (too large numbers, too long texts)
+  rescue_from ActiveRecord::RangeError, ActiveRecord::ValueTooLong, with: :value_too_large_handler
 
   private
 
@@ -48,6 +57,44 @@ class Api::V1::BaseController < ApplicationController
 
   def skip_session
     request.session_options[:skip] = true
+  end
+
+  def check_decimal_params
+    invalid = invalid_decimal_params(params.to_unsafe_h)
+    return if invalid.empty?
+
+    key, value = invalid.first
+    render status: :unprocessable_entity,
+           json: { error: 'not_acceptable',
+                   error_description: "#{key} must be a number with a dot as decimal separator, e.g. 130.5 (got #{value.inspect})" }
+  end
+
+  # [key, value] pairs of decimal fields with an invalid value, anywhere in the (nested) params
+  def invalid_decimal_params(data)
+    case data
+    when Hash
+      data.flat_map do |key, value|
+        if DECIMAL_PARAMS.include?(key.to_s) && !(value.is_a?(Hash) || value.is_a?(Array))
+          valid_decimal?(value) ? [] : [[key, value]]
+        else
+          invalid_decimal_params(value)
+        end
+      end
+    when Array then data.flat_map { |value| invalid_decimal_params(value) }
+    else []
+    end
+  end
+
+  def valid_decimal?(value)
+    return true if value.nil? || (value.is_a?(Numeric) && value.to_f.finite?)
+    return false unless value.is_a?(String)
+
+    value.strip.empty? || value.match?(DECIMAL_FORMAT) # blank is left to the model's presence checks
+  end
+
+  def value_too_large_handler(_error)
+    render status: :unprocessable_entity,
+           json: { error: 'not_acceptable', error_description: 'A value is too large or too long' }
   end
 
   def not_found_handler(e)
