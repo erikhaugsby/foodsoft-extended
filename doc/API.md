@@ -159,3 +159,19 @@ Request bodies are JSON objects wrapped in the resource name, for example
   `POST /invoices`, or later on `POST /invoices/{id}/attachments`.
 * As in the web interface, members with only the invoices role can change their own unpaid
   invoices, and `paid_on` can only be set with the finance role.
+
+
+## Links
+
+`GET /api/v1/links` (scope `config:user`, any member): the coop's links from the
+website's "Links" menu that the member may open (links without a workgroup, links
+of the member's workgroups, all for admins), ordered by name, as
+`{"links": [{"id": 1, "name": "Webmail"}]}`. Addresses and credentials are not
+included; apps open `/links/{id}` in their web view, where the website does the
+rest. 404 when the links plugin is not installed.
+
+## Orders: extra fields
+
+Order JSON also has `invoice_id` (the linked invoice, or null) and
+`supplier_min_order_quantity` (the supplier's minimum order as free text, e.g.
+"50 EUR"), which every member may see, as on the website's ordering page.
