@@ -149,9 +149,9 @@ class Api::V1::BaseController < ApplicationController
       "#{key} must be an object" unless value.is_a?(Hash)
     elsif key.end_with?('_ids')
       "#{key} must be a list of ids" unless value.is_a?(Array) && value.all? { |v| blank_or?(v) { integer?(v) } }
-    elsif key == 'id' || key.end_with?('_id')
-      [:not_found, "#{key} #{value} not found"] unless blank_or?(value) { integer?(value) }
-    elsif INTEGER_PARAMS.include?(key)
+    elsif key == 'id' # the id in the address: one with letters cannot exist
+      [:not_found, "#{value} not found"] unless blank_or?(value) { integer?(value) }
+    elsif INTEGER_PARAMS.include?(key) || key.end_with?('_id')
       "#{key} must be a whole number" unless blank_or?(value) { integer?(value) && value.to_i >= minimum(key) }
     elsif DATE_PARAMS.include?(key)
       "#{key} must be a date like 2026-12-31 or 2026-12-31T18:00" unless blank_or?(value) { date?(value) }
