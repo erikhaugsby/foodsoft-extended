@@ -16,7 +16,7 @@ class Api::V1::BaseController < ApplicationController
   # Dates and times: ISO 8601 only (2026-12-31, 2026-12-31T18:00, 2026-12-31T18:00:00+01:00)
   DATE_PARAMS = %w[starts ends boxfill pickup date paid_on].freeze
   DATE_FORMAT = /\A(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?\z/
-  BOOLEAN_PARAMS = %w[ignore_warnings availability private].freeze
+  BOOLEAN_PARAMS = %w[ignore_warnings availability private for_me threads].freeze
   BOOLEAN_VALUES = [true, false, 'true', 'false', '1', '0', 1, 0].freeze
   # top-level request objects, e.g. {"order": {...}}
   OBJECT_PARAMS = %w[order article invoice message group_order_article financial_transaction supplier].freeze
