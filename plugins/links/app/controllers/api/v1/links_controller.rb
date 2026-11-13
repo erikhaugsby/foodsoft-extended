@@ -5,9 +5,7 @@ class Api::V1::LinksController < Api::V1::BaseController
 
   def index
     links = Link.ordered
-    unless current_user.role_admin?
-      links = links.where(workgroup_id: [nil] + current_user.workgroups.map(&:id))
-    end
+    links = links.where(workgroup_id: [nil] + current_user.workgroups.map(&:id)) unless current_user.role_admin?
     render json: { links: links.map { |link| { id: link.id, name: link.name } } }
   end
 end

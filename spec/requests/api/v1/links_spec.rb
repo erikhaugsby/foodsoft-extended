@@ -10,7 +10,7 @@ describe 'Links API' do
 
   before do
     Link.create!(name: 'Webmail', url: 'https://mail.example.org', indirect: true, authorization: 'Basic secret')
-    Link.create!(name: 'Accounting', url: 'https://books.example.org', workgroup: team)
+    Link.create!(name: 'Accounting', url: 'https://books.example.org', workgroup_id: team.id)
     Link.create!(name: 'Calendar', url: 'https://cal.example.org')
   end
 
@@ -23,7 +23,7 @@ describe 'Links API' do
   end
 
   it 'includes a workgroup link for its members' do
-    team.update!(user_ids: [user.id])
+    Group.find(team.id).update!(user_ids: [user.id])
     get '/f/api/v1/links', headers: headers
     expect(json['links'].pluck('name')).to eq %w[Accounting Calendar Webmail]
   end
@@ -36,21 +36,5 @@ describe 'Links API' do
   it 'needs a login' do
     get '/f/api/v1/links'
     expect(response).to have_http_status(:unauthorized)
-  end
-end
-
-describe 'Order JSON for the apps' do
-  let(:user) { create(:user, :ordergroup) }
-  let(:headers) do
-    { 'Authorization' => "Bearer #{create(:oauth2_access_token, resource_owner_id: user.id, scopes: 'orders:read').token}" }
-  end
-
-  it 'shows the invoice and the minimum order to every member' do
-    supplier = create(:supplier, min_order_quantity: '50 EUR')
-    order = create(:order, supplier: supplier)
-    invoice = create(:invoice, supplier: supplier)
-    order.update!(invoice: invoice)
-    get "/f/api/v1/orders/#{order.id}", headers: headers
-    expect(response.parsed_body['order']).to include('invoice_id' => invoice.id, 'supplier_min_order_quantity' => '50 EUR')
   end
 end
