@@ -6,7 +6,7 @@ class Api::V1::BaseController < ApplicationController
   # Money and amount fields in requests: a number, or a string with digits and at most one
   # dot as decimal separator ("130.5"). Commas, thousands separators and exponents are refused,
   # whatever the user's language, so "130,5" or "1.300,50" never turn into a wrong amount.
-  DECIMAL_PARAMS = %w[price tax deposit amount deposit_credit result].freeze
+  DECIMAL_PARAMS = %w[price tax deposit amount deposit_credit result units_received].freeze
   DECIMAL_FORMAT = /\A\s*-?\d+(\.\d+)?\s*\z/
 
   before_action :skip_session
@@ -16,7 +16,7 @@ class Api::V1::BaseController < ApplicationController
   # Dates and times: ISO 8601 only (2026-12-31, 2026-12-31T18:00, 2026-12-31T18:00:00+01:00)
   DATE_PARAMS = %w[starts ends boxfill pickup date paid_on].freeze
   DATE_FORMAT = /\A(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?\z/
-  BOOLEAN_PARAMS = %w[ignore_warnings availability private for_me threads].freeze
+  BOOLEAN_PARAMS = %w[ignore_warnings availability private for_me threads rest_to_tolerance].freeze
   BOOLEAN_VALUES = [true, false, 'true', 'false', '1', '0', 1, 0].freeze
   # top-level request objects, e.g. {"order": {...}}
   OBJECT_PARAMS = %w[order article invoice message group_order_article financial_transaction supplier].freeze

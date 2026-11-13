@@ -44,6 +44,8 @@ describe 'Management API safety' do
       [:post, '/orders', { order: { supplier_id: supplier.id } }, 'orders:write'],
       [:patch, "/orders/#{order.id}", { order: { note: 'Changed' } }, 'orders:write'],
       [:post, "/orders/#{order.id}/finish", nil, 'orders:write'],
+      [:post, "/orders/#{order.id}/send_to_supplier", nil, 'orders:write'],
+      [:post, "/orders/#{order.id}/receive", nil, 'orders:read'],
       [:post, '/invoices', { invoice: { supplier_id: supplier.id, number: '1', amount: 1 } }, 'invoices:write'],
       [:patch, "/invoices/#{invoice.id}", { invoice: { note: 'Changed' } }, 'invoices:write']
     ]

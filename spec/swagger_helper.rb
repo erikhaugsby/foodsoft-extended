@@ -92,6 +92,16 @@ RSpec.configure do |config|
                 type: :string,
                 enum: %w[no_end_action auto_close auto_close_and_send auto_close_and_send_min_quantity],
                 description: 'what happens automatically when the end date is reached'
+              },
+              last_sent_mail: {
+                type: :string,
+                nullable: true,
+                format: 'date-time',
+                description: 'when the order was last emailed to the supplier'
+              },
+              supplier_has_email: {
+                type: :boolean,
+                description: 'whether the order can be emailed to the supplier'
               }
             }
           },
@@ -311,6 +321,15 @@ RSpec.configure do |config|
               units_to_order: {
                 type: :integer,
                 description: 'number of units to order from the supplier'
+              },
+              units_received: {
+                type: :number,
+                nullable: true,
+                description: 'number of units delivered, as entered when receiving; null before'
+              },
+              result_manually_changed: {
+                type: :boolean,
+                description: "members' amounts were changed by hand; receiving is locked for this article"
               },
               article: {
                 '$ref': '#/components/schemas/Article'

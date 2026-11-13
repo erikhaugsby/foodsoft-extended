@@ -142,8 +142,8 @@ scopes below, _and_ the user needs the matching role.
 
 | Scope | Role | Endpoints |
 |---|---|---|
-| `orders:write` | orders | `POST /orders`, `PATCH /orders/{id}`, `POST /orders/{id}/finish` |
-| `orders:read` | orders or pickups | `GET /orders/{id}/documents/{document}` (PDF; `groups`, `articles`, `fax` or `matrix`) |
+| `orders:write` | orders | `POST /orders`, `PATCH /orders/{id}`, `POST /orders/{id}/finish`, `POST /orders/{id}/send_to_supplier` |
+| `orders:read` | orders or pickups | `GET /orders/{id}/documents/{document}` (PDF; `groups`, `articles`, `fax` or `matrix`), `POST /orders/{id}/receive` |
 | `articles:read`, `articles:write` | article meta | `GET/POST /articles`, `GET/PATCH/DELETE /articles/{id}` |
 | `invoices:read`, `invoices:write` | finance or invoices | `GET/POST /invoices`, `GET/PATCH /invoices/{id}`, `POST /invoices/{id}/attachments`, `GET/DELETE /invoices/{id}/attachments/{attachment_id}` |
 | `suppliers:read` (or any of the write scopes above) | any of the roles above | `GET /suppliers`, `GET /suppliers/{id}` |
@@ -155,6 +155,21 @@ Request bodies are JSON objects wrapped in the resource name, for example
   Stock orders cannot be opened through the API yet.
 * `POST /orders/{id}/finish` closes an open order for ordering. Settling (accounting) is
   not part of the API.
+* `POST /orders/{id}/send_to_supplier` emails a finished (or received) order to the supplier,
+  like the website's button, also again. The email is sent in the background; the order's
+  `last_sent_mail` shows when it last went out. 422 when the supplier has no email address
+  (`supplier_has_email` in the order JSON) or for stock orders.
+* `POST /orders/{id}/receive` receives a finished order, like the website's "Receive" page,
+  also by members with the pickups role. Optional body:
+  `{"order": {"order_articles": [{"id": 12, "units_received": 3}], "rest_to_tolerance": true}}`.
+  `units_received` are the boxes delivered (a number with a dot); the members' amounts are
+  redistributed as on the website, using their tolerance unless `rest_to_tolerance` is false.
+  Articles not listed stay as they are. Articles whose amounts were changed by hand
+  (`result_manually_changed` in the order article JSON) are refused (422), as the website
+  locks them. Everything is checked before anything changes. The order is then `received`
+  and members who want it get the website's email.
+* Messages to everyone who ordered from an order: `POST /messages` with
+  `send_method: "order"` and `order_id` (see Messages).
 * `DELETE /articles/{id}` marks the article as deleted; this is refused while the article
   is part of an open order.
 * Files (JPEG, PNG or PDF, e.g. a photo of a receipt) are uploaded as `multipart/form-data`
@@ -177,4 +192,7 @@ rest. 404 when the links plugin is not installed.
 
 Order JSON also has `invoice_id` (the linked invoice, or null) and
 `supplier_min_order_quantity` (the supplier's minimum order as free text, e.g.
-"50 EUR"), which every member may see, as on the website's ordering page.
+"50 EUR"), which every member may see, as on the website's ordering page,
+`last_sent_mail` (when the order was last emailed to the supplier, or null) and
+`supplier_has_email`. Order article JSON also has `units_received` (boxes delivered,
+null before receiving) and `result_manually_changed`.
