@@ -16,6 +16,9 @@ class Api::V1::MessagesController < Api::V1::BaseController
                else
                  messages.not_deleted
                end
+    if ActiveModel::Type::Boolean.new.cast(params[:for_me])
+      messages = messages.where(id: MessageRecipient.where(user_id: current_user.id).select(:message_id))
+    end
     messages = messages.page(params[:page].to_i).per(per_page)
     render json: messages, meta: collection_meta(messages), scope: current_user
   end

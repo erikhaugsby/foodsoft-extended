@@ -126,6 +126,9 @@ Body for `POST` (wrapped in `message`):
 
 `body` is returned as plain text, `body_html` as HTML; both are `null` for
 deleted messages. `can_edit` and `can_delete` tell the app which buttons to show.
+`for_me` is true when the message was addressed to the current user (directly,
+through a group, to all members or to an order's members): exactly the people
+Foodsoft emails it to. `GET /api/v1/messages?for_me=true` lists only those.
 
 Every message is also emailed to recipients who receive email. Editing or
 deleting a message changes it in Foodsoft only; emails that were already sent

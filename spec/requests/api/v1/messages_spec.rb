@@ -177,6 +177,36 @@ describe 'Messages API' do
     end
   end
 
+  describe 'for_me' do
+    let(:team) { create(:workgroup, user_ids: [user.id, third_user.id]) }
+    let!(:to_me) { create_message(sender: other_user, recipients: [user]) }
+    let!(:by_me) { create_message(sender: user, recipients: [other_user]) }
+    let!(:public_to_others) { create_message(sender: other_user, recipients: [third_user]) }
+    let!(:private_to_me) { create_message(sender: other_user, recipients: [user], private: true) }
+    let!(:to_my_group) do
+      message = Message.new(sender: other_user, subject: 'Team', body: 'Hi team', group_id: team.id)
+      message.save!
+      message
+    end
+
+    it 'marks the messages Foodsoft sends to the member' do
+      get '/f/api/v1/messages', headers: headers
+      for_me = json['messages'].to_h { |m| [m['id'], m['for_me']] }
+      expect(for_me).to eq(to_me.id => true, by_me.id => false, public_to_others.id => false,
+                           private_to_me.id => true, to_my_group.id => true)
+    end
+
+    it 'filters with for_me=true' do
+      get '/f/api/v1/messages', headers: headers, params: { for_me: true }
+      expect(json['messages'].pluck('id')).to contain_exactly(to_me.id, private_to_me.id, to_my_group.id)
+    end
+
+    it 'refuses for_me values other than true or false' do
+      get '/f/api/v1/messages', headers: headers, params: { for_me: 'yes' }
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
+
   describe 'safety' do
     let(:strangers_private) { create_message(sender: other_user, recipients: [third_user], private: true) }
 

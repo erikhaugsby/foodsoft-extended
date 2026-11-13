@@ -1,7 +1,7 @@
 class MessageSerializer < ActiveModel::Serializer
   attributes :id, :subject, :body, :body_html, :sender_id, :sender_name, :group_id, :group_name,
              :reply_to, :private, :created_at, :edited_at, :deleted, :recipient_count,
-             :can_edit, :can_delete
+             :can_edit, :can_delete, :for_me
 
   # Only for a single message: the list can be long for messages to all members.
   attribute :recipients, if: -> { instance_options[:include_recipients] }
@@ -33,6 +33,12 @@ class MessageSerializer < ActiveModel::Serializer
 
   def recipients
     object.recipients.map { |user| { id: user.id, name: user.display } }
+  end
+
+  # Addressed to the current user, directly or through a group, all members or an order:
+  # exactly the people Foodsoft emails it to. Uses the preloaded recipients, no extra query.
+  def for_me
+    scope.present? && object.message_recipients.any? { |recipient| recipient.user_id == scope.id }
   end
 
   def can_edit
