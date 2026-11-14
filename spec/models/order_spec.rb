@@ -171,6 +171,8 @@ describe Order do
     let!(:goa) { create(:group_order_article, group_order: go, order_article: oa, quantity: 1) }
 
     before do
+      # one piece must fill a whole unit, or nothing is received (the factory picks random unit sizes)
+      oa.article.update_column(:unit_quantity, 1) # rubocop:disable Rails/SkipsModelValidations
       goa.update_quantities(1, 0)
       go.reload
       go.update_price!
