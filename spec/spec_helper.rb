@@ -9,6 +9,8 @@ require 'capybara/apparition'
 
 Capybara.server = :puma, { Silent: true }
 Capybara.javascript_driver = :apparition
+# CI machines can be slow; Capybara only waits this long when something is not there yet
+Capybara.default_max_wait_time = 10
 
 # TODO: Remove temporary fix to ignore JavaScript errors
 Capybara.register_driver :apparition do |app|
