@@ -76,19 +76,16 @@ class Api::V1::OrdersController < Api::V1::BaseController
 
     # all entries are checked before anything is changed
     changes = Array(entries).map do |entry|
-      unless entry.is_a?(ActionController::Parameters) && entry[:id].present?
-        return unprocessable('each order article must be an object with id and units_received')
-      end
+      bad_entry = !entry.is_a?(ActionController::Parameters) || entry[:id].blank?
+      return unprocessable('each order article must be an object with id and units_received') if bad_entry
 
       units = entry[:units_received]
       units = nil if units.is_a?(String) && units.strip.empty?
-      return unprocessable('units_received must not be negative') if units && units.to_d.negative?
+      return unprocessable('units_received must not be negative') if units&.to_d&.negative?
 
       order_article = order.order_articles.find(entry[:id])
-      if order_article.result_manually_changed? # locked on the website as well
-        return unprocessable("#{order_article.article.name}: the members' amounts were changed by hand, " \
-                             'please receive it on the website')
-      end
+      # locked on the website as well
+      return unprocessable(locked_message(order_article)) if order_article.result_manually_changed?
 
       [order_article, units]
     end
@@ -100,7 +97,8 @@ class Api::V1::OrdersController < Api::V1::BaseController
       changes.each do |order_article, units|
         order_article.units_received = units
         if order_article.units_received_changed? && order_article.units_received.present?
-          order_article.redistribute order_article.units_received * order_article.price.unit_quantity, rest_to
+          delivered = order_article.units_received * order_article.price.unit_quantity
+          order_article.redistribute delivered, rest_to
         end
         order_article.save!
       end
@@ -161,6 +159,10 @@ class Api::V1::OrdersController < Api::V1::BaseController
     render status: :unprocessable_entity,
            json: { error: 'not_acceptable', error_description: "Invalid end_action: #{end_action}" }
     false
+  end
+
+  def locked_message(order_article)
+    "#{order_article.article.name}: the members' amounts were changed by hand, please receive it on the website"
   end
 
   def unprocessable(description)

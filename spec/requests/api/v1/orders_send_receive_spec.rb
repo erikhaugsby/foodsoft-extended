@@ -7,10 +7,10 @@ describe 'Orders: send to supplier and receive' do
   let(:article) { create(:article, supplier: supplier, unit_quantity: 3) }
   let(:order) { create(:order, supplier: supplier, article_ids: [article.id]) }
   let(:oa) { order.order_articles.find_by(article_id: article.id) }
-  let(:go1) { create(:group_order, order: order) }
-  let(:go2) { create(:group_order, order: order) }
-  let(:goa1) { create(:group_order_article, group_order: go1, order_article: oa) }
-  let(:goa2) { create(:group_order_article, group_order: go2, order_article: oa) }
+  let(:household_a_order) { create(:group_order, order: order) }
+  let(:household_b_order) { create(:group_order, order: order) }
+  let(:household_a) { create(:group_order_article, group_order: household_a_order, order_article: oa) }
+  let(:household_b) { create(:group_order_article, group_order: household_b_order, order_article: oa) }
   let(:orders_user) { create(:user, groups: [create(:workgroup, role_orders: true)]) }
   let(:pickups_user) { create(:user, groups: [create(:workgroup, role_pickups: true)]) }
   let(:member) { create(:user, :ordergroup) }
@@ -27,8 +27,8 @@ describe 'Orders: send to supplier and receive' do
 
   # members ordered 2+0 and 3+2 (quantity+tolerance) of a box of 3: Foodsoft orders 2 boxes
   def ordered_and_finished
-    goa1.update_quantities(2, 0)
-    goa2.update_quantities(3, 2)
+    household_a.update_quantities(2, 0)
+    household_b.update_quantities(3, 2)
     oa.update_results!
     order.finish!(orders_user)
   end
@@ -67,11 +67,11 @@ describe 'Orders: send to supplier and receive' do
   end
 
   describe 'receive' do
-    def check_results(units, r1, r2)
-      [oa, goa1, goa2].each(&:reload)
+    def check_results(units, result_a, result_b)
+      [oa, household_a, household_b].each(&:reload)
       expect(oa.units).to eq units
-      expect(goa1.result).to be_within(1e-3).of r1
-      expect(goa2.result).to be_within(1e-3).of r2
+      expect(household_a.result).to be_within(1e-3).of result_a
+      expect(household_b.result).to be_within(1e-3).of result_b
     end
 
     it 'marks the order received without changing amounts when no articles are given' do
@@ -95,6 +95,7 @@ describe 'Orders: send to supplier and receive' do
       ordered_and_finished
       call "/orders/#{order.id}/receive", orders_user, ['orders:read'],
            { order: { order_articles: [{ id: oa.id, units_received: '1' }] } }
+      expect(response).to have_http_status(:ok)
       check_results 1, 2, 1
     end
 
@@ -102,6 +103,7 @@ describe 'Orders: send to supplier and receive' do
       ordered_and_finished
       call "/orders/#{order.id}/receive", pickups_user, ['orders:read']
       expect(response).to have_http_status(:ok)
+      expect(order.reload.state).to eq 'received'
     end
 
     it 'refuses members without a role' do
@@ -124,7 +126,7 @@ describe 'Orders: send to supplier and receive' do
 
     it 'leaves articles changed by hand to the website' do
       ordered_and_finished
-      goa1.update!(result: goa1.result + 1)
+      household_a.update!(result: household_a.result + 1)
       call "/orders/#{order.id}/receive", orders_user, ['orders:read'],
            { order: { order_articles: [{ id: oa.id, units_received: 3 }] } }
       expect(response).to have_http_status(:unprocessable_entity)
