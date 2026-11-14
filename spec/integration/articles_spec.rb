@@ -27,11 +27,13 @@ feature ArticlesController do
         fill_in 'article_unit_quantity', with: article.unit_quantity
         fill_in 'article_tax', with: article.tax
         fill_in 'article_deposit', with: article.deposit
-        # "Element cannot be scrolled into view" error, js as workaround
-        # find('input[type="submit"]').click
-        page.execute_script('$("form#new_article").submit();')
+        # "Element cannot be scrolled into view" error, js as workaround. Clicking the submit
+        # button fires the submit event the Rails JavaScript listens to; calling submit() on
+        # the form does not always, and then nothing is sent.
+        page.execute_script('document.querySelector("form#new_article [type=submit]").click();')
       end
-      expect(page).to have_content(article.name)
+      errors = -> { page.all('#new_article .error, #new_article .help-inline').map(&:text).join('; ') }
+      expect(page).to have_content(article.name), -> { "article not created; form errors: #{errors.call}" }
     end
   end
 
