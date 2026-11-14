@@ -50,8 +50,9 @@ feature 'supplier' do
       supplier
       visit suppliers_path
       expect(page).to have_content(supplier.name)
+      # other suppliers may be listed too: delete in this supplier's row
       accept_confirm do
-        click_link I18n.t('ui.delete')
+        find('tr', text: supplier.name).click_link(I18n.t('ui.delete'))
       end
       expect(page).to have_no_content(supplier.name)
       expect(supplier.reload.deleted?).to be true
