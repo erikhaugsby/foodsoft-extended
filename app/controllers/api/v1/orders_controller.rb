@@ -6,6 +6,7 @@ class Api::V1::OrdersController < Api::V1::BaseController
 
   before_action -> { doorkeeper_authorize! 'orders:read', 'orders:write' }
   before_action -> { doorkeeper_authorize! 'orders:write' }, only: %i[create update finish send_to_supplier]
+  before_action -> { doorkeeper_authorize! 'orders:read' }, only: :receive
   before_action :require_orders_or_pickups_role, only: %i[document receive]
 
   def index
