@@ -303,6 +303,8 @@ Rails.application.routes.draw do
         resources :orders, only: %i[index show create update] do
           member do
             post :finish
+            post :send_to_supplier
+            post :receive
             get 'documents/:document', to: 'orders#document', as: :document
           end
         end
