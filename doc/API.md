@@ -107,3 +107,19 @@ Order JSON also has:
   (e.g. "50 EUR"), which every member may see, as on the website's ordering page.
 - `last_sent_mail`: when the order was last emailed to the supplier, or null;
   `supplier_has_email`: whether it can be emailed at all.
+## Input rules
+
+Request values are checked before anything changes; a wrong type answers `422`
+(`{"error": "not_acceptable", "error_description": ...}`):
+
+- Money and amounts (`amount`, `price`, `deposit`, `result`, ...): a number, or a
+  string with digits and at most one dot (`130.5`). Commas, thousands separators
+  and exponents are refused, whatever the user's language.
+- Whole numbers (`quantity`, `tolerance`, `unit_quantity`): digits only.
+- Ids (`id`, `*_id`): digits only; an id with letters answers `404`. Id lists
+  (`*_ids`): a list of ids.
+- Dates (`starts`, `ends`, `pickup`, `date`, ...): ISO 8601, e.g. `2026-12-31` or
+  `2026-12-31T18:00:00+01:00`. Booleans: `true` or `false`.
+- Request objects (e.g. `group_order_article`) must be objects; a missing one
+  answers `400`. A search (`q`) on a list must be an object.
+- Values too large or too long for the database answer `422`.
