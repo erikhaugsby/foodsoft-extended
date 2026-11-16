@@ -94,3 +94,12 @@ http://localhost:3002/f/api/v1/financial_transactions/1?access_token=12345...
 
 When the user logs out of Foodsoft, all access tokens are destroyed, except when
 the token's scope includes `offline_access` (so offline applications are possible).
+
+## Links
+
+`GET /api/v1/links` (scope `config:user`, any member): the coop's links from the
+website's "Links" menu that the member may open (links without a workgroup, links
+of the member's workgroups, all for admins), ordered by name, as
+`{"links": [{"id": 1, "name": "Webmail"}]}`. Addresses and credentials are not
+included; apps open `/links/{id}` in their web view, where the website does the
+rest. 404 when the links plugin is not installed.
