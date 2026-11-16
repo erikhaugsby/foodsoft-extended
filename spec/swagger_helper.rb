@@ -74,6 +74,44 @@ RSpec.configure do |config|
               is_boxfill: {
                 type: :boolean,
                 description: 'if the order is currently in the boxfill phase or not'
+              },
+              state: {
+                type: :string,
+                enum: %w[open finished received closed]
+              },
+              supplier_id: {
+                type: :integer,
+                nullable: true,
+                description: 'id of the supplier, or null for a stock order'
+              },
+              note: {
+                type: :string,
+                nullable: true
+              },
+              end_action: {
+                type: :string,
+                enum: %w[no_end_action auto_close auto_close_and_send auto_close_and_send_min_quantity],
+                description: 'what happens automatically when the end date is reached'
+              },
+              invoice_id: {
+                type: :integer,
+                nullable: true,
+                description: 'id of the linked invoice'
+              },
+              supplier_min_order_quantity: {
+                type: :string,
+                nullable: true,
+                description: "the supplier's minimum order as free text, e.g. '50 EUR'"
+              },
+              last_sent_mail: {
+                type: :string,
+                nullable: true,
+                format: 'date-time',
+                description: 'when the order was last emailed to the supplier'
+              },
+              supplier_has_email: {
+                type: :boolean,
+                description: 'whether the order can be emailed to the supplier'
               }
             }
           },

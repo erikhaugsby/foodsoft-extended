@@ -94,3 +94,16 @@ http://localhost:3002/f/api/v1/financial_transactions/1?access_token=12345...
 
 When the user logs out of Foodsoft, all access tokens are destroyed, except when
 the token's scope includes `offline_access` (so offline applications are possible).
+
+## Orders: extra fields
+
+Order JSON also has:
+
+- `state`: `open`, `finished` (ordering ended), `received` (the delivery is in,
+  ready for pickup) or `closed` (settled).
+- `supplier_id` (null for a stock order), `note`, `end_action`.
+- `invoice_id`: the linked invoice, or null.
+- `supplier_min_order_quantity`: the supplier's minimum order as free text
+  (e.g. "50 EUR"), which every member may see, as on the website's ordering page.
+- `last_sent_mail`: when the order was last emailed to the supplier, or null;
+  `supplier_has_email`: whether it can be emailed at all.
