@@ -6,21 +6,22 @@ class Message < ApplicationRecord
   belongs_to :reply_to_message, optional: true, class_name: 'Message', foreign_key: 'reply_to'
   has_many :message_recipients, dependent: :destroy
   has_many :recipients, through: :message_recipients, source: :user
-  has_one :last_reply, -> { order(created_at: :desc) }, class_name: "Message", foreign_key: :reply_to
+  has_one :last_reply, -> { order(created_at: :desc) }, class_name: 'Message', foreign_key: :reply_to
 
   attr_accessor :send_method, :recipient_tokens, :order_id, :mrecipients_ids
 
   scope :threads, -> { where(reply_to: nil) }
+  scope :not_deleted, -> { where(deleted_at: nil) }
   scope :thread, ->(id) { where('id = ? OR reply_to = ?', id, id) }
   scope :readable_for, lambda { |user|
     return none unless user
-    
+
     left_joins(:message_recipients)
       .where('messages.private = FALSE OR messages.sender_id = :user_id OR message_recipients.user_id = :user_id',
              user_id: user.id)
       .distinct
   }
-  scope :last_readable_for, ->(user, nr) {
+  scope :last_readable_for, lambda { |user, nr|
     user_id = user.try(&:id)
     received = MessageRecipient.select(:message_id, :user_id).where(user_id: user_id).limit(nr)
 
@@ -43,25 +44,21 @@ class Message < ApplicationRecord
 
   # Override the `attributes=` method to exclude `mrecipients_ids`
   def attributes=(new_attributes)
-    if new_attributes.respond_to?(:with_indifferent_access)
-      new_attributes = new_attributes.with_indifferent_access
-    end
+    new_attributes = new_attributes.with_indifferent_access if new_attributes.respond_to?(:with_indifferent_access)
 
     # Log the attributes for debugging purposes
-    Rails.logger.debug "Original attributes: #{new_attributes.inspect}"
+    Rails.logger.debug { "Original attributes: #{new_attributes.inspect}" }
 
     # Remove `mrecipients_ids` from the attributes hash
     new_attributes = new_attributes.except(:mrecipients_ids, 'mrecipients_ids')
 
     # Log the sanitized attributes for debugging purposes
-    Rails.logger.debug "Sanitized attributes: #{new_attributes.inspect}"
+    Rails.logger.debug { "Sanitized attributes: #{new_attributes.inspect}" }
 
     super(new_attributes)
   end
 
-  def mrecipients_ids=(value)
-    @mrecipients_ids = value
-  end
+  attr_writer :mrecipients_ids
 
   def add_recipients(users)
     @mrecipients_ids += users
@@ -140,6 +137,46 @@ class Message < ApplicationRecord
     !private || sender == user || message_recipients.where(user: user).any?
   end
 
+  def deleted?
+    deleted_at.present?
+  end
+
+  def edited?
+    edited_at.present?
+  end
+
+  # Only the sender can change subject and text of a message, as long as it is not deleted.
+  def can_edit?(user)
+    return false if user.nil? || deleted? || system_message?
+
+    sender_id == user.id
+  end
+
+  # The sender and admins can delete a message.
+  def can_delete?(user)
+    return false if user.nil? || deleted?
+
+    sender_id == user.id || user.role_admin?.present? # role_admin? returns a group
+  end
+
+  # Changes subject and text. Emails that were already sent are not changed.
+  def edit!(subject:, body:)
+    self.subject = subject unless subject.nil?
+    self.body = body unless body.nil?
+    self.edited_at = Time.now
+    save!
+  end
+
+  # Deletes the text of a message, but keeps the record, so that replies in its thread
+  # still make sense. The subject is kept as the title of the thread.
+  # Emails that were already sent are not changed.
+  def soft_delete!
+    transaction do
+      rich_text_body&.destroy
+      update_columns(deleted_at: Time.now)
+    end
+  end
+
   def can_toggle_private?(user)
     return true if sender == user
     return false if private?
@@ -164,5 +201,4 @@ class Message < ApplicationRecord
   def create_salt
     self.salt = [Array.new(6) { rand(256).chr }.join].pack('m').chomp
   end
-
 end

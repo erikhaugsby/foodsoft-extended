@@ -9,12 +9,23 @@
     .panel-heading
       %b= h(message.sender_name)
       = format_time(message.created_at)
+      - if message.edited?
+        %small= t '.edited', when: format_time(message.edited_at)
+      - if message.can_edit?(current_user)
+        = link_to t('ui.edit'), edit_message_path(message), class: 'btn btn-mini'
+      - if message.can_delete?(current_user)
+        = link_to t('ui.delete'), message_path(message), method: :delete, class: 'btn btn-mini btn-danger',
+          data: {confirm: t('messages.show.confirm_delete')}
       %br
       - # show the list of recipients in a expandable detail/summary panel
       %details
         %summary= t '.recipients'
         = message.recipients.map(&:display).join(', ')
-    .panel-body= simple_format(h(message.body))
+    - if message.deleted?
+      .panel-body
+        %i= t 'messages.deleted'
+    - else
+      .panel-body= simple_format(h(message.body))
 
 %p
   = link_to t('.reply'), new_message_path(:message => {:reply_to => thread_message.id}), class: 'btn'

@@ -78,6 +78,15 @@ en:
       new: New message
     create:
       notice: Message is saved and will be sent.
+    deleted: This message was deleted.
+    destroy:
+      not_allowed: You cannot delete this message.
+      notice: The message was deleted. Emails that were already sent cannot be changed.
+    edit:
+      hint_email: Emails that were already sent stay as they were. Only the message in Foodsoft changes.
+      not_allowed: Only the sender can edit this message.
+      submit: Save changes
+      title: Edit message
     index:
       title: Messages
     messages:
@@ -103,6 +112,8 @@ en:
       search_user: Search user
       title: New message
     show:
+      confirm_delete: Delete this message? Its text is removed. Emails that were already sent cannot be changed.
+      edited_on: 'Edited:'
       all_messages: All messages
       change_visibility: 'Change'
       from: ! 'From:'
@@ -120,8 +131,11 @@ en:
       all_message_threads: All message threads
       reply: Reply
       recipients: Recipients
+      edited: (edited %{when})
     toggle_private:
       not_allowed: You can not change the visibility of the message.
+    update:
+      notice: The message was changed. Emails that were already sent cannot be changed.
   message_threads:
     groupmessage_threads:
       show_message_threads: show all

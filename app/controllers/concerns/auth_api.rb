@@ -64,6 +64,7 @@ module Concerns::AuthApi
     when 'suppliers'      then return current_user.role_suppliers?
     when 'group_orders'   then return current_user.role_orders?
     when 'finance'        then return current_user.role_finance?
+    when 'messages'       then return true # members' messages, readability is checked per message
       # please note that offline_access does not belong here, since it is not used for permission checking
     end
 

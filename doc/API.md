@@ -111,3 +111,41 @@ Request values are checked before anything changes; a wrong type answers `422`
 - Request objects (e.g. `group_order_article`) must be objects; a missing one
   answers `400`. A search (`q`) on a list must be an object.
 - Values too large or too long for the database answer `422`.
+
+## Messages
+
+Available when the messages plugin is enabled (otherwise every endpoint answers
+`404`). Scopes: `messages:read` to read, `messages:write` to read, send, edit and
+delete. Any member may use them; which messages a user sees follows the website
+(public messages, plus private ones the user sent or received).
+
+| Endpoint | What it does |
+|---|---|
+| `GET /api/v1/messages` | Readable messages, newest first, without deleted ones. `threads=true` lists only the first message of each thread (deleted ones included). Paginated with `page` and `per_page`. |
+| `GET /api/v1/messages/{id}` | One message, with its recipients. |
+| `GET /api/v1/messages/{id}/thread` | All readable messages of the thread, oldest first, including deleted ones as placeholders. |
+| `GET /api/v1/messages/recipients?q=...` | Users and groups (workgroups, ordergroups, message groups) whose name matches, at least 2 characters. |
+| `POST /api/v1/messages` | Sends a message, see below. |
+| `PATCH /api/v1/messages/{id}` | Sender only: changes `subject` and/or `body`, sets `edited_at`. |
+| `DELETE /api/v1/messages/{id}` | Sender or admin: removes the text and marks the message deleted; the subject stays as thread title. Answers `204`. |
+
+Body for `POST` (wrapped in `message`):
+
+- `send_method`: `recipients` (default), `all`, `workgroup`, `ordergroup`,
+  `messagegroup` or `order` (everyone who ordered from that order). `all` is refused when a mailing list is configured,
+  as on the website.
+- `recipient_ids`, `group_id` (for the three group methods), `order_id` (for `order`).
+- `subject`, `body` (plain text; line breaks are kept), `private`.
+- `reply_to`: id of a readable message. The reply goes to the original sender
+  (and group), into the same thread, with the original's privacy and a "Re:"
+  subject unless given.
+
+`body` is returned as plain text, `body_html` as HTML; both are `null` for
+deleted messages. `can_edit` and `can_delete` tell the app which buttons to show.
+`for_me` is true when the message was addressed to the current user (directly,
+through a group, to all members or to an order's members): exactly the people
+Foodsoft emails it to. `GET /api/v1/messages?for_me=true` lists only those.
+
+Every message is also emailed to recipients who receive email. Editing or
+deleting a message changes it in Foodsoft only; emails that were already sent
+stay as they were. A message deleted before its email job runs is not emailed.

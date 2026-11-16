@@ -5,6 +5,9 @@ class DeliverMessageJob < ApplicationJob
   retry_on Net::OpenTimeout, wait: :exponentially_longer, attempts: 5
 
   def perform(message)
+    # The sender deleted the message before it was delivered.
+    return if message.deleted?
+
     message.message_recipients.each do |message_recipient|
       # Skip the action if email_state is :sent
       next if message_recipient.email_state == 'sent'
@@ -16,7 +19,7 @@ class DeliverMessageJob < ApplicationJob
             MessagesMailer.foodsoft_message(recipient, message)
           end
           message_recipient.update_attribute :email_state, :sent
-        rescue => e
+        rescue StandardError => e
           # Log the error but don't let one failed email stop the whole job
           Rails.logger.error("Failed to deliver message #{message.id} to recipient #{recipient.id} (#{recipient.email}): #{e.class} - #{e.message}")
           # Mark as failed but continue with other recipients

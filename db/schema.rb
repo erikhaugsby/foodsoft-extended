@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_04_04_004950) do
+ActiveRecord::Schema[7.0].define(version: 2026_11_12_000000) do
   create_table "action_text_rich_texts", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.string "name", null: false
     t.text "body", size: :long
@@ -305,6 +305,8 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_04_004950) do
     t.integer "group_id"
     t.string "salt"
     t.binary "received_email", size: :medium
+    t.datetime "edited_at"
+    t.datetime "deleted_at"
   end
 
   create_table "oauth_access_grants", id: :integer, charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|

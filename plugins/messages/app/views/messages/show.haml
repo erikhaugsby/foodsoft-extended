@@ -23,6 +23,10 @@
     %tr
       %td= t '.sent_on'
       %td= format_time(@message.created_at)
+    - if @message.edited?
+      %tr
+        %td= t '.edited_on'
+        %td= format_time(@message.edited_at)
     %tr
       %td= t '.visibility'
       %td
@@ -33,9 +37,18 @@
         - if @message.can_toggle_private?(current_user)
           = link_to t('.change_visibility'), toggle_private_message_path(@message), method: :post, class: 'btn btn-mini'
   %hr/
-  .trix-content= @message.body
+  - if @message.deleted?
+    %p
+      %i= t 'messages.deleted'
+  - else
+    .trix-content= @message.body
   %hr/
   %p
     = link_to t('.reply'), new_message_path(:message => {:reply_to => @message.id}), class: 'btn'
+    - if @message.can_edit?(current_user)
+      = link_to t('ui.edit'), edit_message_path(@message), class: 'btn'
+    - if @message.can_delete?(current_user)
+      = link_to t('ui.delete'), message_path(@message), method: :delete, class: 'btn btn-danger',
+        data: {confirm: t('.confirm_delete')}
     |
     = link_to t('.all_messages'), messages_path
