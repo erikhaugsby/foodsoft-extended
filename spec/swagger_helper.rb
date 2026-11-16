@@ -115,6 +115,143 @@ RSpec.configure do |config|
               }
             }
           },
+          OrderForUpdate: {
+            type: :object,
+            properties: {
+              starts: { type: :string, format: 'date-time' },
+              ends: { type: :string, format: 'date-time', nullable: true },
+              boxfill: { type: :string, format: 'date-time', nullable: true },
+              pickup: { type: :string, format: :date, nullable: true },
+              note: { type: :string, nullable: true },
+              end_action: { '$ref': '#/components/schemas/Order/properties/end_action' },
+              article_ids: {
+                type: :array,
+                items: { type: :integer },
+                description: "ids of the supplier's articles to offer; on create this defaults to all available articles"
+              },
+              ignore_warnings: {
+                type: :boolean,
+                description: 'on update, allow removing articles that members have already ordered'
+              }
+            }
+          },
+          OrderForCreate: {
+            allOf: [
+              { '$ref': '#/components/schemas/OrderForUpdate' },
+              {
+                type: :object,
+                properties: { supplier_id: { type: :integer } },
+                required: %w[supplier_id]
+              }
+            ]
+          },
+          Supplier: {
+            type: :object,
+            properties: {
+              id: { type: :integer },
+              name: { type: :string },
+              delivery_days: { type: :string, nullable: true },
+              min_order_quantity: { type: :string, nullable: true },
+              note: { type: :string, nullable: true }
+            },
+            required: %w[id name]
+          },
+          ArticleForUpdate: {
+            type: :object,
+            properties: {
+              name: { type: :string },
+              article_category_id: { type: :integer },
+              unit: { type: :string, description: 'amount of each unit, e.g. "100 g" or "kg"' },
+              unit_quantity: { type: :integer, description: 'units can only be ordered from the supplier in multiples of unit_quantity' },
+              note: { type: :string, nullable: true },
+              manufacturer: { type: :string, nullable: true },
+              origin: { type: :string, nullable: true },
+              order_number: { type: :string, nullable: true },
+              price: { type: :number, format: :float, description: 'net supplier price of one unit' },
+              tax: { type: :number, format: :float, description: 'VAT percentage' },
+              deposit: { type: :number, format: :float },
+              availability: { type: :boolean }
+            }
+          },
+          ArticleForCreate: {
+            allOf: [
+              { '$ref': '#/components/schemas/ArticleForUpdate' },
+              {
+                type: :object,
+                properties: { supplier_id: { type: :integer } },
+                required: %w[supplier_id name article_category_id unit price]
+              }
+            ]
+          },
+          ArticleDetail: {
+            allOf: [
+              { '$ref': '#/components/schemas/Article' },
+              { '$ref': '#/components/schemas/ArticleForUpdate' },
+              {
+                type: :object,
+                properties: {
+                  fc_price: { type: :number, format: :float, description: 'foodcoop price of one unit (incl. tax, deposit and markup)' }
+                }
+              }
+            ]
+          },
+          InvoiceForUpdate: {
+            type: :object,
+            properties: {
+              number: { type: :string, nullable: true },
+              date: { type: :string, format: :date, nullable: true },
+              paid_on: { type: :string, format: :date, nullable: true, description: 'can only be set with the finance role' },
+              note: { type: :string, nullable: true },
+              amount: { type: :number, format: :float },
+              deposit: { type: :number, format: :float },
+              deposit_credit: { type: :number, format: :float },
+              order_ids: { type: :array, items: { type: :integer } },
+              delivery_ids: { type: :array, items: { type: :integer } }
+            }
+          },
+          InvoiceForCreate: {
+            allOf: [
+              { '$ref': '#/components/schemas/InvoiceForUpdate' },
+              {
+                type: :object,
+                properties: { supplier_id: { type: :integer } },
+                required: %w[supplier_id]
+              }
+            ]
+          },
+          Invoice: {
+            type: :object,
+            properties: {
+              id: { type: :integer },
+              supplier_id: { type: :integer },
+              supplier_name: { type: :string, nullable: true },
+              number: { type: :string, nullable: true },
+              date: { type: :string, format: :date, nullable: true },
+              paid_on: { type: :string, format: :date, nullable: true },
+              note: { type: :string, nullable: true },
+              amount: { type: :number, format: :float },
+              deposit: { type: :number, format: :float },
+              deposit_credit: { type: :number, format: :float },
+              created_at: { type: :string, format: 'date-time', nullable: true },
+              created_by_user_id: { type: :integer, nullable: true },
+              order_ids: { type: :array, items: { type: :integer } },
+              can_edit: { type: :boolean, description: 'whether the current user may change this invoice' },
+              attachments: {
+                type: :array,
+                items: {
+                  type: :object,
+                  properties: {
+                    id: { type: :integer },
+                    filename: { type: :string },
+                    content_type: { type: :string },
+                    byte_size: { type: :integer }
+                  },
+                  required: %w[id filename content_type byte_size]
+                }
+              }
+            },
+            required: %w[id supplier_id amount attachments]
+          },
           Article: {
             type: :object,
             properties: {
@@ -194,6 +331,15 @@ RSpec.configure do |config|
               units_to_order: {
                 type: :integer,
                 description: 'number of units to order from the supplier'
+              },
+              units_received: {
+                type: :number,
+                nullable: true,
+                description: 'number of units delivered, as entered when receiving; null before'
+              },
+              result_manually_changed: {
+                type: :boolean,
+                description: "members' amounts were changed by hand; receiving is locked for this article"
               },
               article: {
                 '$ref': '#/components/schemas/Article'
@@ -520,6 +666,14 @@ RSpec.configure do |config|
                   'finance:write': 'reading and creating financial transactions',
                   'user:read': 'reading your own user profile',
                   'user:write': 'reading and updating your own user profile',
+                  'orders:read': 'reading orders',
+                  'orders:write': 'opening, updating and finishing orders',
+                  'group_orders:user': "managing your ordergroup's order",
+                  'articles:read': 'reading articles of suppliers',
+                  'articles:write': 'creating, updating and deleting articles',
+                  'invoices:read': 'reading invoices and their attachments',
+                  'invoices:write': 'creating and updating invoices, uploading attachments',
+                  'suppliers:read': 'reading suppliers',
                   offline_access: 'retain access after user has logged out'
                 }
               }

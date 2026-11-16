@@ -56,6 +56,9 @@ Doorkeeper.configure do
   optional_scopes 'config:read', 'config:write',
                   'finance:read', 'finance:write',
                   'orders:write',
+                  'articles:read', 'articles:write',
+                  'invoices:read', 'invoices:write',
+                  'suppliers:read',
                   'user:write',
                   'offline_access'
 

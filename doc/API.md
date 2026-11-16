@@ -123,3 +123,49 @@ Request values are checked before anything changes; a wrong type answers `422`
 - Request objects (e.g. `group_order_article`) must be objects; a missing one
   answers `400`. A search (`q`) on a list must be an object.
 - Values too large or too long for the database answer `422`.
+
+## Managing orders, articles and invoices
+
+Besides the member functions, the API offers a number of endpoints for members
+with a role in the foodcoop. They need an access token with one of the optional
+scopes below, _and_ the user needs the matching role.
+
+| Scope | Role | Endpoints |
+|---|---|---|
+| `orders:write` | orders | `POST /orders`, `PATCH /orders/{id}`, `POST /orders/{id}/finish`, `POST /orders/{id}/send_to_supplier` |
+| `orders:read` | orders or pickups | `GET /orders/{id}/documents/{document}` (PDF; `groups`, `articles`, `fax` or `matrix`), `POST /orders/{id}/receive` |
+| `articles:read`, `articles:write` | article meta | `GET/POST /articles`, `GET/PATCH/DELETE /articles/{id}` |
+| `invoices:read`, `invoices:write` | finance or invoices | `GET/POST /invoices`, `GET/PATCH /invoices/{id}`, `POST /invoices/{id}/attachments`, `GET/DELETE /invoices/{id}/attachments/{attachment_id}` |
+| `suppliers:read` (or any of the write scopes above) | any of the roles above | `GET /suppliers`, `GET /suppliers/{id}` |
+
+Request bodies are JSON objects wrapped in the resource name, for example
+`{"order": {"supplier_id": 3, "ends": "2024-05-10T18:00:00+02:00"}}`.
+
+* Opening an order without `article_ids` offers all available articles of the supplier.
+  Stock orders cannot be opened through the API yet.
+* `POST /orders/{id}/finish` closes an open order for ordering. Settling (accounting) is
+  not part of the API.
+* `POST /orders/{id}/send_to_supplier` emails a finished (or received) order to the supplier,
+  like the website's button, also again. The email is sent in the background; the order's
+  `last_sent_mail` shows when it last went out. 422 when the supplier has no email address
+  (`supplier_has_email` in the order JSON) or for stock orders.
+* `POST /orders/{id}/receive` receives a finished order, like the website's "Receive" page,
+  also by members with the pickups role. Optional body:
+  `{"order": {"order_articles": [{"id": 12, "units_received": 3}], "rest_to_tolerance": true}}`.
+  `units_received` are the boxes delivered (a number with a dot); the members' amounts are
+  redistributed as on the website, using their tolerance unless `rest_to_tolerance` is false.
+  Articles not listed stay as they are. Articles whose amounts were changed by hand
+  (`result_manually_changed` in the order article JSON) are refused (422), as the website
+  locks them. Everything is checked before anything changes. The order is then `received`
+  and members who want it get the website's email.
+* `DELETE /articles/{id}` marks the article as deleted; this is refused while the article
+  is part of an open order.
+* Files (JPEG, PNG or PDF, e.g. a photo of a receipt) are uploaded as `multipart/form-data`
+  in the field `attachments[]`, either together with the invoice fields on
+  `POST /invoices`, or later on `POST /invoices/{id}/attachments`.
+* As in the web interface, members with only the invoices role can change their own unpaid
+  invoices, and `paid_on` can only be set with the finance role.
+
+Order article JSON also has `units_received` (boxes delivered, null before
+receiving) and `result_manually_changed`. Group orders of the user's ordergroup:
+`GET /user/group_orders` (scope `group_orders:user`), with `updated_by_name`.

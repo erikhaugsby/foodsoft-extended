@@ -20,6 +20,14 @@ class Invoice < ApplicationRecord
   # Replace numeric seperator with database format
   localize_input_of :amount, :deposit, :deposit_credit
 
+  def self.ransackable_attributes(_auth_object = nil)
+    %w[id supplier_id number date paid_on amount created_at created_by_user_id]
+  end
+
+  def self.ransackable_associations(_auth_object = nil)
+    %w[supplier orders]
+  end
+
   def user_can_edit?(user)
     user.role_finance? || (user.role_invoices? && !paid_on && created_by.try(:id) == user.id)
   end
